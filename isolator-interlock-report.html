@@ -45,6 +45,22 @@
   .generate-btn{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;}
   .generate-btn:disabled{background:#c9a3a5;cursor:not-allowed;}
 
+  .preview-item{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;}
+  .preview-item .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .preview-item .cat{font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
+  .preview-item .eq{font-weight:700;font-size:14px;}
+  .preview-item .detail-line{font-size:12.5px;color:var(--ink);margin-top:3px;}
+  .preview-item .meta{font-size:11.5px;color:var(--grey);margin-top:4px;}
+  .edit-btn{background:none;border:1.5px solid var(--line);color:var(--ink);font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+  .preview-edit{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;}
+  .preview-edit label{display:block;font-size:11.5px;font-weight:600;margin:0 0 3px;}
+  .preview-edit input, .preview-edit textarea{width:100%;padding:8px 9px;font-size:13.5px;border:1.5px solid var(--line);border-radius:6px;margin-bottom:10px;font-family:'Barlow',sans-serif;}
+  .preview-edit textarea{min-height:44px;resize:vertical;}
+  .id-live{background:#f2f2f2;border:1px dashed var(--line);border-radius:6px;padding:7px 9px;font-size:12.5px;font-weight:600;margin-bottom:10px;}
+  .preview-edit .btns{display:flex;gap:8px;}
+  .btn-save{flex:1;background:var(--pass);color:#fff;border:none;padding:9px;border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .btn-cancel{flex:1;background:#fff;border:1.5px solid var(--line);color:var(--ink);padding:9px;border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;}
+
   .banner{display:none;padding:12px 14px;border-radius:8px;font-size:13.5px;font-weight:600;margin-bottom:14px;}
   .banner.ok{background:#eaf7ee;color:var(--pass);border:1px solid #b9e2c4;}
   .banner.bad{background:#fbe9e9;color:var(--fail);border:1px solid #f0bcbe;}
@@ -114,6 +130,12 @@
     </div>
 
     <div class="card">
+      <p class="section-label">Report preview</p>
+      <p class="hint" style="display:block;margin-bottom:14px;">This is what's about to go into the report. Fix spelling or wording here before generating — test results (pass/fail, date, engineer) aren't editable from this screen.</p>
+      <div id="previewList"><div class="empty-note">Select a site to preview.</div></div>
+    </div>
+
+    <div class="card">
       <p class="section-label">Generate report</p>
       <p class="hint" style="display:block;margin-bottom:14px;">Builds a PDF from every active (non-flagged) test currently on record for this site. Resolve pending deletions above first for an accurate report.</p>
       <button type="button" class="generate-btn" id="generateBtn">Generate PDF</button>
@@ -151,38 +173,77 @@ msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' 
 // Kept in sync by hand with the engineer tool's CATEGORIES object.
 // If checklists change there, mirror the change here too.
 const CATEGORIES = {
-  'Panel Isolator': { checks: [
-    { key: 'operation', label: 'Operation' }, { key: 'guards', label: 'All guards & shields in place' },
-    { key: 'handle', label: 'Handle' }, { key: 'interlock', label: 'Interlock working' },
-    { key: 'heat', label: 'No signs of heat on any connections' }, { key: 'connectionsSecure', label: 'Connections secure' }
-  ]},
-  'Motor Isolator': { checks: [
-    { key: 'operation', label: 'Operation' }, { key: 'handleCondition', label: 'Handle in good condition' },
-    { key: 'interlock', label: 'Interlock working' }, { key: 'heat', label: 'No signs of heat on any connections' },
-    { key: 'enclosure', label: 'Enclosure in satisfactory condition' }, { key: 'auxContacts', label: 'Aux contacts working' },
-    { key: 'labelled', label: 'Correctly labelled with relevant equipment name (e.g. C16)' },
-    { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
-  ]},
-  'E-Stop': { checks: [
-    { key: 'buttonOperation', label: 'Button operation' }, { key: 'shroudLabel', label: 'Shroud and/or label in correct position' },
-    { key: 'terminalBlocks', label: 'Terminal blocks secure on rear' }, { key: 'relayOperates', label: 'E-stop relay operates' },
-    { key: 'channelsDisconnect', label: 'Do both channels disconnect' }, { key: 'machineryStops', label: 'All required machinery stops immediately' },
-    { key: 'resetOperational', label: 'E-stop relay reset button operational' }, { key: 'restartWhilePressed', label: 'Can the machinery be restarted when button is pressed?' },
-    { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
-  ]},
-  'Safety Interlock': { checks: [
-    { key: 'mounted', label: 'Interlock correctly mounted and secure' }, { key: 'channelsDisconnect', label: 'Do both safety channels disconnect' },
-    { key: 'machineryStops', label: 'All required machinery stops immediately' }, { key: 'resetOperational', label: 'E-stop relay reset button operational' },
-    { key: 'restartWhileOpen', label: 'Can the machinery be restarted when interlock is open' }, { key: 'lockEngaged', label: 'Lock engaged fully when machine is running' },
-    { key: 'cantOpenUntilStopped', label: "Can't be opened until machine has stopped" }, { key: 'latchCondition', label: 'Latching mechanism is not bent or worn out' },
-    { key: 'tamperInspection', label: 'Inspect the switch and surrounding area for signs of tampering' },
-    { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
-  ]}
+  'Panel Isolator': {
+    fields: [{ key: 'panelName', label: 'Panel Name' }],
+    idFields: ['panelName'], idSuffix: 'Isolator',
+    checks: [
+      { key: 'operation', label: 'Operation' }, { key: 'guards', label: 'All guards & shields in place' },
+      { key: 'handle', label: 'Handle' }, { key: 'interlock', label: 'Interlock working' },
+      { key: 'heat', label: 'No signs of heat on any connections' }, { key: 'connectionsSecure', label: 'Connections secure' }
+    ]
+  },
+  'Motor Isolator': {
+    fields: [{ key: 'millLocation', label: 'Mill Location' }, { key: 'equipmentName', label: 'Equipment Name' }],
+    idFields: ['millLocation', 'equipmentName'], idSuffix: 'Isolator',
+    checks: [
+      { key: 'operation', label: 'Operation' }, { key: 'handleCondition', label: 'Handle in good condition' },
+      { key: 'interlock', label: 'Interlock working' }, { key: 'heat', label: 'No signs of heat on any connections' },
+      { key: 'enclosure', label: 'Enclosure in satisfactory condition' }, { key: 'auxContacts', label: 'Aux contacts working' },
+      { key: 'labelled', label: 'Correctly labelled with relevant equipment name (e.g. C16)' },
+      { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
+    ]
+  },
+  'E-Stop': {
+    fields: [{ key: 'millLocation', label: 'Mill Location' }, { key: 'physicalLocation', label: 'Physical Location' },
+      { key: 'relayLocation', label: 'Location of Safety Relay' }, { key: 'equipmentAffected', label: 'Equipment Affected When Pressed' }],
+    idFields: ['millLocation', 'physicalLocation'], idSuffix: 'E-Stop',
+    checks: [
+      { key: 'buttonOperation', label: 'Button operation' }, { key: 'shroudLabel', label: 'Shroud and/or label in correct position' },
+      { key: 'terminalBlocks', label: 'Terminal blocks secure on rear' }, { key: 'relayOperates', label: 'E-stop relay operates' },
+      { key: 'channelsDisconnect', label: 'Do both channels disconnect' }, { key: 'machineryStops', label: 'All required machinery stops immediately' },
+      { key: 'resetOperational', label: 'E-stop relay reset button operational' }, { key: 'restartWhilePressed', label: 'Can the machinery be restarted when button is pressed?' },
+      { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
+    ]
+  },
+  'Safety Interlock': {
+    fields: [{ key: 'millLocation', label: 'Mill Location' }, { key: 'physicalLocation', label: 'Physical Location' },
+      { key: 'equipmentAffected', label: 'Equipment Affected' }],
+    idFields: ['millLocation', 'physicalLocation'], idSuffix: 'Interlock',
+    checks: [
+      { key: 'mounted', label: 'Interlock correctly mounted and secure' }, { key: 'channelsDisconnect', label: 'Do both safety channels disconnect' },
+      { key: 'machineryStops', label: 'All required machinery stops immediately' }, { key: 'resetOperational', label: 'E-stop relay reset button operational' },
+      { key: 'restartWhileOpen', label: 'Can the machinery be restarted when interlock is open' }, { key: 'lockEngaged', label: 'Lock engaged fully when machine is running' },
+      { key: 'cantOpenUntilStopped', label: "Can't be opened until machine has stopped" }, { key: 'latchCondition', label: 'Latching mechanism is not bent or worn out' },
+      { key: 'tamperInspection', label: 'Inspect the switch and surrounding area for signs of tampering' },
+      { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
+    ]
+  }
 };
 const CATEGORY_NAMES = Object.keys(CATEGORIES);
 
+function computeEquipmentId(category, values) {
+  const def = CATEGORIES[category];
+  if (!def) return '';
+  const parts = def.idFields.map(k => (values[k] || '').trim()).filter(Boolean);
+  if (parts.length < def.idFields.length) return '';
+  return parts.join(' ') + ' ' + def.idSuffix;
+}
+
 let currentUser = null;
 let siteHistoryCache = [];
+let editingId = null;
+
+function getReportGroups() {
+  const byEquip = {};
+  siteHistoryCache.filter(d => !d.deletedFlag).forEach(d => {
+    if (!byEquip[d.equipmentId]) byEquip[d.equipmentId] = [];
+    byEquip[d.equipmentId].push(d);
+  });
+  return Object.keys(byEquip).sort().map(eq => {
+    const hist = byEquip[eq];
+    return { eq, latest: hist[hist.length - 1], hist };
+  });
+}
 
 function overallPassOf(record) {
   if (record.checks && Object.keys(record.checks).length) return Object.values(record.checks).every(v => v === 'Pass');
@@ -276,6 +337,7 @@ async function loadSiteData() {
     const snap = await getDocs(q);
     snap.forEach(docSnap => siteHistoryCache.push({ _id: docSnap.id, ...docSnap.data() }));
     renderPending();
+    renderPreview();
   } catch (e) {
     pendingList.innerHTML = '<div class="empty-note">Could not load — ' + (e.message || e.code || 'unknown error') + '</div>';
   }
@@ -314,7 +376,103 @@ function renderPending() {
   });
 }
 
-// ---- PDF generation ----
+function renderPreview() {
+  const previewList = document.getElementById('previewList');
+  const groups = getReportGroups();
+  if (groups.length === 0) { previewList.innerHTML = '<div class="empty-note">Nothing active to report for this site.</div>'; return; }
+
+  previewList.innerHTML = groups.map(g => {
+    const latest = g.latest;
+    const def = CATEGORIES[latest.category];
+    const detailLine = def ? def.fields.map(f => latest[f.key]).filter(Boolean).join(' · ') : '';
+    const isEditing = editingId === latest._id;
+
+    if (!isEditing) {
+      return `
+        <div class="preview-item">
+          <div class="top">
+            <div>
+              <div class="cat">${latest.category || 'Uncategorised'}</div>
+              <div class="eq">${g.eq}</div>
+              ${detailLine ? `<div class="detail-line">${detailLine}</div>` : ''}
+              ${latest.details ? `<div class="detail-line">${latest.details}</div>` : ''}
+              ${latest.partNumber ? `<div class="meta">Part: ${latest.partNumber}</div>` : ''}
+            </div>
+            <button type="button" class="edit-btn" data-id="${latest._id}">Edit</button>
+          </div>
+        </div>
+      `;
+    }
+
+    const fieldInputs = (def ? def.fields : []).map(f => `
+      <label>${f.label}</label>
+      <input type="text" data-edit-field="${f.key}" value="${(latest[f.key] || '').replace(/"/g,'&quot;')}">
+    `).join('');
+
+    return `
+      <div class="preview-item">
+        <div class="top">
+          <div><div class="cat">${latest.category || 'Uncategorised'}</div><div class="eq">${g.eq}</div></div>
+        </div>
+        <div class="preview-edit" data-doc-id="${latest._id}" data-category="${latest.category}">
+          ${fieldInputs}
+          <label>Equipment ID (updates automatically)</label>
+          <div class="id-live" data-role="idLive">${g.eq}</div>
+          <label>Details</label>
+          <textarea data-edit-field="details">${latest.details || ''}</textarea>
+          <label>Part number</label>
+          <input type="text" data-edit-field="partNumber" value="${(latest.partNumber || '').replace(/"/g,'&quot;')}">
+          <label>Notes</label>
+          <textarea data-edit-field="notes">${latest.notes || ''}</textarea>
+          <div class="btns">
+            <button type="button" class="btn-cancel" data-role="cancel">Cancel</button>
+            <button type="button" class="btn-save" data-role="save">Save changes</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  previewList.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => { editingId = btn.dataset.id; renderPreview(); });
+  });
+
+  previewList.querySelectorAll('.preview-edit').forEach(editBox => {
+    const category = editBox.dataset.category;
+    const def = CATEGORIES[category];
+    const idLive = editBox.querySelector('[data-role="idLive"]');
+
+    function refreshIdLive() {
+      const values = {};
+      (def ? def.fields : []).forEach(f => { values[f.key] = editBox.querySelector(`[data-edit-field="${f.key}"]`).value; });
+      idLive.textContent = computeEquipmentId(category, values) || '(incomplete)';
+    }
+    editBox.querySelectorAll('[data-edit-field]').forEach(inp => {
+      if (def && def.fields.some(f => f.key === inp.dataset.editField)) inp.addEventListener('input', refreshIdLive);
+    });
+
+    editBox.querySelector('[data-role="cancel"]').addEventListener('click', () => { editingId = null; renderPreview(); });
+
+    editBox.querySelector('[data-role="save"]').addEventListener('click', async () => {
+      const docId = editBox.dataset.docId;
+      const update = {};
+      const values = {};
+      editBox.querySelectorAll('[data-edit-field]').forEach(inp => {
+        update[inp.dataset.editField] = inp.value.trim();
+        if (def && def.fields.some(f => f.key === inp.dataset.editField)) values[inp.dataset.editField] = inp.value.trim();
+      });
+      const newId = def ? computeEquipmentId(category, values) : null;
+      if (newId) update.equipmentId = newId;
+      try {
+        await updateDoc(doc(db, 'isolatorTests', docId), update);
+        editingId = null;
+        await loadSiteData();
+      } catch (e) {
+        alert('Could not save — ' + (e.message || e.code || 'unknown error'));
+      }
+    });
+  });
+}
 document.getElementById('generateBtn').addEventListener('click', () => {
   const banner = document.getElementById('banner');
   banner.style.display = 'none';
@@ -323,15 +481,7 @@ document.getElementById('generateBtn').addEventListener('click', () => {
   const siteName = siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '';
   if (!siteRef) { banner.className = 'banner bad'; banner.textContent = 'Select a site first.'; banner.style.display = 'block'; return; }
 
-  const byEquip = {};
-  siteHistoryCache.filter(d => !d.deletedFlag).forEach(d => {
-    if (!byEquip[d.equipmentId]) byEquip[d.equipmentId] = [];
-    byEquip[d.equipmentId].push(d);
-  });
-  const groups = Object.keys(byEquip).sort().map(eq => {
-    const hist = byEquip[eq];
-    return { eq, latest: hist[hist.length - 1], hist };
-  });
+  const groups = getReportGroups();
   if (groups.length === 0) { banner.className = 'banner bad'; banner.textContent = 'Nothing to report for this site.'; banner.style.display = 'block'; return; }
 
   const { jsPDF } = window.jspdf;
