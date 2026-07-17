@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isolator / Interlock Reports — Simpson & Wood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#D0222A; --red-dark:#a91b22; --ink:#1a1a1a; --grey:#6b6b6b;
+    --line:#e2e2e2; --bg:#f6f5f4; --card:#ffffff; --pass:#1f8a3d; --fail:#c0272d;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Barlow',sans-serif;background:var(--bg);color:var(--ink);}
+  header{background:var(--ink);padding:16px 16px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  header .brand{display:flex;align-items:center;gap:12px;}
+  header img{height:32px;display:block;}
+  header .title-block h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;letter-spacing:.02em;color:#fff;margin:0;text-transform:uppercase;}
+  header .title-block p{margin:2px 0 0;font-size:11.5px;color:#8f8f8f;}
+  header .who{text-align:right;}
+  header .who .name{color:#fff;font-size:12.5px;font-weight:600;}
+  header .who button{background:none;border:none;color:#e2b0b3;font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-top:2px;}
+
+  .site-bar{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;}
+  .site-bar-inner{max-width:640px;margin:0 auto;}
+  .site-bar label{font-size:12px;font-weight:600;margin-bottom:5px;display:block;}
+  .site-bar select{width:100%;padding:10px 11px;font-size:15px;border:1.5px solid var(--line);border-radius:7px;background:#fff;font-family:'Barlow',sans-serif;}
+  .site-status{font-size:11.5px;color:var(--grey);margin-top:5px;}
+
+  main{max-width:640px;margin:0 auto;padding:16px;}
+  .card{background:var(--card);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);}
+  .section-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px;color:var(--red);margin:0 0 12px;}
+  .hint{color:var(--grey);font-size:12.5px;}
+
+  .pending-item{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;}
+  .pending-item .eq{font-weight:700;font-size:14px;}
+  .pending-item .cat{font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
+  .pending-item .meta{font-size:12px;color:var(--grey);margin-top:4px;}
+  .pending-item .btns{display:flex;gap:8px;margin-top:10px;}
+  .btn-confirm{flex:1;background:var(--fail);color:#fff;border:none;padding:9px;border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .btn-restore{flex:1;background:#fff;border:1.5px solid var(--line);color:var(--ink);padding:9px;border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .empty-note{color:var(--grey);font-size:13px;text-align:center;padding:14px 0;}
+
+  .generate-btn{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;}
+  .generate-btn:disabled{background:#c9a3a5;cursor:not-allowed;}
+
+  .banner{display:none;padding:12px 14px;border-radius:8px;font-size:13.5px;font-weight:600;margin-bottom:14px;}
+  .banner.ok{background:#eaf7ee;color:var(--pass);border:1px solid #b9e2c4;}
+  .banner.bad{background:#fbe9e9;color:var(--fail);border:1px solid #f0bcbe;}
+
+  #signinScreen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--bg);}
+  #signinScreen img{height:44px;margin-bottom:28px;}
+  #signinScreen h2{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;font-size:20px;margin:0 0 8px;}
+  #signinScreen p{color:var(--grey);font-size:14px;max-width:320px;margin:0 0 26px;}
+  .ms-btn{display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;border:none;padding:13px 22px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;}
+  .ms-btn:active{background:#000;}
+  #signinScreen .err{color:var(--fail);font-size:13px;margin-top:16px;max-width:320px;}
+  #appRoot{display:none;}
+
+  #notAuthorised{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--bg);}
+  #notAuthorised h2{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;font-size:19px;color:var(--fail);margin:0 0 10px;}
+  #notAuthorised p{color:var(--grey);font-size:14px;max-width:320px;margin:0 0 20px;}
+</style>
+</head>
+<body>
+
+<div id="signinScreen">
+  <img src="sw-logo.png" alt="Simpson & Wood">
+  <h2>Isolator / Interlock Reports</h2>
+  <p>Management sign-in required.</p>
+  <button class="ms-btn" id="msSignInBtn">Sign in with Microsoft</button>
+  <div class="err" id="signinErr"></div>
+</div>
+
+<div id="notAuthorised">
+  <img src="sw-logo.png" alt="Simpson & Wood" style="height:40px;margin-bottom:24px;">
+  <h2>Access restricted</h2>
+  <p>This tool is for management only. Signed in as <span id="notAuthEmail"></span> — if this should have access, contact whoever manages the Firebase project.</p>
+  <button class="ms-btn" id="signOutBtn2">Sign out</button>
+</div>
+
+<div id="appRoot">
+  <header>
+    <div class="brand">
+      <img src="sw-logo.png" alt="Simpson & Wood">
+      <div class="title-block">
+        <h1>Isolator / Interlock Reports</h1>
+        <p id="versionLabel">v1.0 · Management</p>
+      </div>
+    </div>
+    <div class="who">
+      <div class="name" id="whoName">—</div>
+      <button id="signOutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <div class="site-bar">
+    <div class="site-bar-inner">
+      <label>Site <span style="color:var(--red);">*</span></label>
+      <select id="site" required>
+        <option value="" disabled selected>Loading site list…</option>
+      </select>
+      <p class="site-status" id="siteStatus"></p>
+    </div>
+  </div>
+
+  <main>
+    <div id="banner" class="banner"></div>
+
+    <div class="card">
+      <p class="section-label">Pending deletions</p>
+      <div id="pendingList"><div class="empty-note">Select a site to review.</div></div>
+    </div>
+
+    <div class="card">
+      <p class="section-label">Generate report</p>
+      <p class="hint" style="display:block;margin-bottom:14px;">Builds a PDF from every active (non-flagged) test currently on record for this site. Resolve pending deletions above first for an accurate report.</p>
+      <button type="button" class="generate-btn" id="generateBtn">Generate PDF</button>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getAuth, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {
+  initializeFirestore, persistentLocalCache, collection, getDocs, doc, getDoc, updateDoc, deleteDoc,
+  query, where, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB5foKhRfIMG91bD5QyT7hHd1XBbeQGucw",
+  authDomain: "simpson-wood-engineer-app.firebaseapp.com",
+  projectId: "simpson-wood-engineer-app",
+  storageBucket: "simpson-wood-engineer-app.firebasestorage.app",
+  messagingSenderId: "201961281346",
+  appId: "1:201961281346:web:3c7386b73b41ce9df35adb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+const msProvider = new OAuthProvider('microsoft.com');
+msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' });
+
+// Kept in sync by hand with the engineer tool's CATEGORIES object.
+// If checklists change there, mirror the change here too.
+const CATEGORIES = {
+  'Panel Isolator': { checks: [
+    { key: 'operation', label: 'Operation' }, { key: 'guards', label: 'All guards & shields in place' },
+    { key: 'handle', label: 'Handle' }, { key: 'interlock', label: 'Interlock working' },
+    { key: 'heat', label: 'No signs of heat on any connections' }, { key: 'connectionsSecure', label: 'Connections secure' }
+  ]},
+  'Motor Isolator': { checks: [
+    { key: 'operation', label: 'Operation' }, { key: 'handleCondition', label: 'Handle in good condition' },
+    { key: 'interlock', label: 'Interlock working' }, { key: 'heat', label: 'No signs of heat on any connections' },
+    { key: 'enclosure', label: 'Enclosure in satisfactory condition' }, { key: 'auxContacts', label: 'Aux contacts working' },
+    { key: 'labelled', label: 'Correctly labelled with relevant equipment name (e.g. C16)' },
+    { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
+  ]},
+  'E-Stop': { checks: [
+    { key: 'buttonOperation', label: 'Button operation' }, { key: 'shroudLabel', label: 'Shroud and/or label in correct position' },
+    { key: 'terminalBlocks', label: 'Terminal blocks secure on rear' }, { key: 'relayOperates', label: 'E-stop relay operates' },
+    { key: 'channelsDisconnect', label: 'Do both channels disconnect' }, { key: 'machineryStops', label: 'All required machinery stops immediately' },
+    { key: 'resetOperational', label: 'E-stop relay reset button operational' }, { key: 'restartWhilePressed', label: 'Can the machinery be restarted when button is pressed?' },
+    { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
+  ]},
+  'Safety Interlock': { checks: [
+    { key: 'mounted', label: 'Interlock correctly mounted and secure' }, { key: 'channelsDisconnect', label: 'Do both safety channels disconnect' },
+    { key: 'machineryStops', label: 'All required machinery stops immediately' }, { key: 'resetOperational', label: 'E-stop relay reset button operational' },
+    { key: 'restartWhileOpen', label: 'Can the machinery be restarted when interlock is open' }, { key: 'lockEngaged', label: 'Lock engaged fully when machine is running' },
+    { key: 'cantOpenUntilStopped', label: "Can't be opened until machine has stopped" }, { key: 'latchCondition', label: 'Latching mechanism is not bent or worn out' },
+    { key: 'tamperInspection', label: 'Inspect the switch and surrounding area for signs of tampering' },
+    { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
+  ]}
+};
+const CATEGORY_NAMES = Object.keys(CATEGORIES);
+
+let currentUser = null;
+let siteHistoryCache = [];
+
+function overallPassOf(record) {
+  if (record.checks && Object.keys(record.checks).length) return Object.values(record.checks).every(v => v === 'Pass');
+  return true;
+}
+
+// ---- Sign-in ----
+function describeAuthError(err) {
+  if (err.code === 'auth/unauthorized-domain') return 'This site\'s domain isn\'t authorised in Firebase yet.';
+  if (err.code === 'auth/operation-not-allowed') return 'Microsoft sign-in isn\'t enabled in Firebase yet.';
+  if (['auth/popup-blocked','auth/popup-closed-by-user','auth/cancelled-popup-request'].includes(err.code)) return null;
+  return 'Sign-in failed — ' + (err.code || err.message || 'unknown error') + '.';
+}
+document.getElementById('msSignInBtn').addEventListener('click', () => {
+  const errBox = document.getElementById('signinErr');
+  errBox.textContent = '';
+  signInWithPopup(auth, msProvider).catch(err => {
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+      signInWithRedirect(auth, msProvider).catch(err2 => { const msg = describeAuthError(err2); if (msg) errBox.textContent = msg; });
+      return;
+    }
+    const msg = describeAuthError(err); if (msg) errBox.textContent = msg;
+  });
+});
+document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
+document.getElementById('signOutBtn2').addEventListener('click', () => signOut(auth));
+getRedirectResult(auth).catch(err => {
+  document.getElementById('signinErr').textContent = 'Sign-in failed — ' + (err.message || 'try again.');
+});
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  document.getElementById('signinScreen').style.display = 'none';
+  document.getElementById('notAuthorised').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'none';
+  if (!user) { document.getElementById('signinScreen').style.display = 'flex'; return; }
+
+  let isManager = false;
+  try {
+    const snap = await getDoc(doc(db, 'managers', user.email));
+    isManager = snap.exists();
+  } catch (e) {
+    console.error('Manager check failed:', e);
+  }
+
+  if (!isManager) {
+    document.getElementById('notAuthEmail').textContent = user.email;
+    document.getElementById('notAuthorised').style.display = 'flex';
+    return;
+  }
+
+  document.getElementById('appRoot').style.display = 'block';
+  document.getElementById('whoName').textContent = user.displayName || user.email;
+  boot();
+});
+
+function boot() {
+  loadSites();
+}
+
+async function loadSites() {
+  const siteSelect = document.getElementById('site');
+  const status = document.getElementById('siteStatus');
+  siteSelect.innerHTML = '<option value="" disabled selected>Loading…</option>';
+  try {
+    const q = query(collection(db, 'jobs'), where('status', '==', 'Active'));
+    const snap = await getDocs(q);
+    siteSelect.innerHTML = '<option value="" disabled selected>Select site</option>';
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      const opt = document.createElement('option');
+      opt.value = docSnap.id; opt.textContent = d.name || docSnap.id;
+      siteSelect.appendChild(opt);
+    });
+    status.textContent = snap.empty ? 'No active sites found.' : '';
+  } catch (e) {
+    status.textContent = 'Could not load site list — ' + (e.message || e.code || 'unknown error');
+  }
+}
+
+document.getElementById('site').addEventListener('change', loadSiteData);
+
+async function loadSiteData() {
+  const siteRef = document.getElementById('site').value;
+  siteHistoryCache = [];
+  const pendingList = document.getElementById('pendingList');
+  if (!siteRef) { pendingList.innerHTML = '<div class="empty-note">Select a site to review.</div>'; return; }
+  pendingList.innerHTML = '<div class="empty-note">Loading…</div>';
+  try {
+    const q = query(collection(db, 'isolatorTests'), where('siteRef', '==', siteRef), orderBy('equipmentId'), orderBy('date'));
+    const snap = await getDocs(q);
+    snap.forEach(docSnap => siteHistoryCache.push({ _id: docSnap.id, ...docSnap.data() }));
+    renderPending();
+  } catch (e) {
+    pendingList.innerHTML = '<div class="empty-note">Could not load — ' + (e.message || e.code || 'unknown error') + '</div>';
+  }
+}
+
+function renderPending() {
+  const pendingList = document.getElementById('pendingList');
+  const flagged = siteHistoryCache.filter(d => d.deletedFlag);
+  if (flagged.length === 0) { pendingList.innerHTML = '<div class="empty-note">Nothing pending — all clear.</div>'; return; }
+  pendingList.innerHTML = flagged.map(d => `
+    <div class="pending-item">
+      <div class="cat">${d.category || 'Uncategorised'}</div>
+      <div class="eq">${d.equipmentId}</div>
+      <div class="meta">Test date ${d.date || '—'} by ${d.engineer || '—'} · flagged by ${d.deletedBy || '—'}</div>
+      <div class="btns">
+        <button type="button" class="btn-restore" data-id="${d._id}" data-action="restore">Restore</button>
+        <button type="button" class="btn-confirm" data-id="${d._id}" data-action="confirm">Confirm removal</button>
+      </div>
+    </div>
+  `).join('');
+  pendingList.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      try {
+        if (btn.dataset.action === 'restore') {
+          await updateDoc(doc(db, 'isolatorTests', id), { deletedFlag: false });
+        } else {
+          if (!confirm('Permanently delete this test record? This cannot be undone.')) return;
+          await deleteDoc(doc(db, 'isolatorTests', id));
+        }
+        await loadSiteData();
+      } catch (e) {
+        alert('Action failed — ' + (e.message || e.code || 'unknown error'));
+      }
+    });
+  });
+}
+
+// ---- PDF generation ----
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const banner = document.getElementById('banner');
+  banner.style.display = 'none';
+  const siteSelect = document.getElementById('site');
+  const siteRef = siteSelect.value;
+  const siteName = siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '';
+  if (!siteRef) { banner.className = 'banner bad'; banner.textContent = 'Select a site first.'; banner.style.display = 'block'; return; }
+
+  const byEquip = {};
+  siteHistoryCache.filter(d => !d.deletedFlag).forEach(d => {
+    if (!byEquip[d.equipmentId]) byEquip[d.equipmentId] = [];
+    byEquip[d.equipmentId].push(d);
+  });
+  const groups = Object.keys(byEquip).sort().map(eq => {
+    const hist = byEquip[eq];
+    return { eq, latest: hist[hist.length - 1], hist };
+  });
+  if (groups.length === 0) { banner.className = 'banner bad'; banner.textContent = 'Nothing to report for this site.'; banner.style.display = 'block'; return; }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const marginX = 40;
+  const bottomLimit = pageH - 50;
+  let y = 0;
+
+  function newPageIfNeeded(need) {
+    if (y + need > bottomLimit) { pdf.addPage(); y = 40; }
+  }
+
+  // Header band
+  pdf.setFillColor(26, 26, 26);
+  pdf.rect(0, 0, pageW, 68, 'F');
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15);
+  pdf.text('Isolator / Interlock Test Report', marginX, 28);
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+  pdf.setTextColor(210, 210, 210);
+  pdf.text(siteName, marginX, 44);
+  pdf.text('Generated ' + new Date().toLocaleDateString('en-GB') + ' by ' + (currentUser.displayName || currentUser.email), marginX, 58);
+  y = 90;
+
+  CATEGORY_NAMES.forEach(cat => {
+    const catGroups = groups.filter(g => g.latest.category === cat);
+    if (catGroups.length === 0) return;
+
+    newPageIfNeeded(30);
+    pdf.setFillColor(208, 34, 42);
+    pdf.rect(marginX, y, pageW - marginX * 2, 20, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
+    pdf.text(cat, marginX + 8, y + 14);
+    y += 32;
+
+    catGroups.forEach(g => {
+      const latest = g.latest;
+      const overallPass = overallPassOf(latest);
+      const checks = CATEGORIES[cat].checks;
+      const failedChecks = checks.filter(c => latest.checks && latest.checks[c.key] === 'Fail').map(c => c.label);
+      const passedCount = checks.filter(c => latest.checks && latest.checks[c.key] === 'Pass').length;
+
+      newPageIfNeeded(60);
+      pdf.setTextColor(26, 26, 26);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
+      pdf.text(g.eq, marginX, y);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
+      pdf.setTextColor(overallPass ? 31 : 192, overallPass ? 138 : 39, overallPass ? 61 : 45);
+      pdf.text(overallPass ? 'PASS' : 'FAIL', pageW - marginX - 30, y);
+      y += 14;
+
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+      pdf.setTextColor(90, 90, 90);
+      pdf.text('Last tested ' + (latest.date || '—') + ' by ' + (latest.engineer || '—') + '  ·  ' + g.hist.length + ' test' + (g.hist.length > 1 ? 's' : '') + ' on record', marginX, y);
+      y += 13;
+
+      pdf.setTextColor(40, 40, 40);
+      pdf.text('Checks: ' + passedCount + '/' + checks.length + ' passed' + (failedChecks.length ? '  ·  Failed: ' + failedChecks.join(', ') : ''), marginX, y, { maxWidth: pageW - marginX * 2 });
+      y += 13;
+
+      if (latest.action && latest.action !== 'No') {
+        pdf.setTextColor(192, 39, 45);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Action required: ' + latest.action, marginX, y);
+        pdf.setFont('helvetica', 'normal');
+        y += 13;
+        pdf.setTextColor(40, 40, 40);
+      }
+
+      if (latest.details) {
+        const lines = pdf.splitTextToSize('Details: ' + latest.details, pageW - marginX * 2);
+        newPageIfNeeded(lines.length * 11 + 4);
+        pdf.text(lines, marginX, y);
+        y += lines.length * 11 + 2;
+      }
+      if (latest.partNumber) { pdf.text('Part number: ' + latest.partNumber, marginX, y); y += 13; }
+      if (latest.notes) {
+        const lines = pdf.splitTextToSize('Notes: ' + latest.notes, pageW - marginX * 2);
+        newPageIfNeeded(lines.length * 11 + 4);
+        pdf.text(lines, marginX, y);
+        y += lines.length * 11 + 2;
+      }
+
+      y += 6;
+      pdf.setDrawColor(225, 225, 225);
+      pdf.line(marginX, y, pageW - marginX, y);
+      y += 16;
+    });
+  });
+
+  const totalPages = pdf.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i);
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+    pdf.setTextColor(150, 150, 150);
+    pdf.text('Simpson & Wood · Isolator/Interlock Report v1.0 · ' + new Date().toLocaleString('en-GB') + ' · Page ' + i + ' of ' + totalPages, marginX, pageH - 25);
+  }
+
+  const filename = 'Isolator-Interlock-Report-' + siteRef + '-' + new Date().toISOString().slice(0,10) + '.pdf';
+  pdf.save(filename);
+
+  banner.className = 'banner ok';
+  banner.textContent = 'Report generated: ' + filename;
+  banner.style.display = 'block';
+});
+</script>
+
+</body>
+</html>
