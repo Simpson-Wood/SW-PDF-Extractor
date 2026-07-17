@@ -242,7 +242,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getAuth, OAuthProvider, signInWithRedirect, getRedirectResult,
+  getAuth, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
   onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
@@ -272,17 +272,31 @@ let entryCounter = 0;
 const entries = {}; // id -> {photoBase64, photoName}
 
 // ---- Sign-in ----
+function describeAuthError(err) {
+  if (err.code === 'auth/unauthorized-domain') {
+    return 'This site\'s domain isn\'t authorised in Firebase yet — add it under Authentication > Settings > Authorized domains.';
+  } else if (err.code === 'auth/operation-not-allowed') {
+    return 'Microsoft sign-in isn\'t enabled in Firebase yet — check Authentication > Sign-in method > Microsoft.';
+  } else if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+    return null; // handled by redirect fallback, not a real error
+  }
+  return 'Sign-in failed — ' + (err.code || err.message || 'unknown error') + '.';
+}
+
 document.getElementById('msSignInBtn').addEventListener('click', () => {
   const errBox = document.getElementById('signinErr');
   errBox.textContent = '';
-  signInWithRedirect(auth, msProvider).catch(err => {
-    if (err.code === 'auth/unauthorized-domain') {
-      errBox.textContent = 'This site\'s domain isn\'t authorised in Firebase yet — add it under Authentication > Settings > Authorized domains.';
-    } else if (err.code === 'auth/operation-not-allowed') {
-      errBox.textContent = 'Microsoft sign-in isn\'t enabled in Firebase yet — check Authentication > Sign-in method > Microsoft.';
-    } else {
-      errBox.textContent = 'Sign-in failed to start — ' + (err.message || err.code || 'unknown error') + '.';
+  signInWithPopup(auth, msProvider).catch(err => {
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+      // fall back to redirect if the browser won't allow a popup
+      signInWithRedirect(auth, msProvider).catch(err2 => {
+        const msg = describeAuthError(err2);
+        if (msg) errBox.textContent = msg;
+      });
+      return;
     }
+    const msg = describeAuthError(err);
+    if (msg) errBox.textContent = msg;
   });
 });
 document.getElementById('signOutBtn').addEventListener('click', () => {
