@@ -8,102 +8,47 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --red:#D0222A;
-    --red-dark:#a91b22;
-    --ink:#1a1a1a;
-    --grey:#6b6b6b;
-    --line:#e2e2e2;
-    --bg:#f6f5f4;
-    --card:#ffffff;
-    --pass:#1f8a3d;
-    --fail:#c0272d;
+    --red:#D0222A; --red-dark:#a91b22; --ink:#1a1a1a; --grey:#6b6b6b;
+    --line:#e2e2e2; --bg:#f6f5f4; --card:#ffffff; --pass:#1f8a3d; --fail:#c0272d; --amber:#b8860b;
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:'Barlow',sans-serif;
-    background:var(--bg);
-    color:var(--ink);
-    padding-bottom:100px;
-  }
-  header{
-    background:var(--ink);
-    padding:18px 16px 16px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-  }
+  body{margin:0;font-family:'Barlow',sans-serif;background:var(--bg);color:var(--ink);padding-bottom:100px;}
+  header{background:var(--ink);padding:16px 16px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
   header .brand{display:flex;align-items:center;gap:12px;}
-  header img{height:34px;display:block;}
-  header .title-block h1{
-    font-family:'Barlow Condensed',sans-serif;
-    font-weight:700;
-    font-size:19px;
-    letter-spacing:.02em;
-    color:#fff;
-    margin:0;
-    text-transform:uppercase;
-  }
-  header .title-block p{
-    margin:2px 0 0;
-    font-size:12px;
-    color:#bdbdbd;
-  }
+  header img{height:32px;display:block;}
+  header .title-block h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;letter-spacing:.02em;color:#fff;margin:0;text-transform:uppercase;}
+  header .title-block p{margin:2px 0 0;font-size:11.5px;color:#8f8f8f;}
   header .who{text-align:right;}
   header .who .name{color:#fff;font-size:12.5px;font-weight:600;}
-  header .who button{
-    background:none;border:none;color:#e2b0b3;font-size:11.5px;cursor:pointer;
-    text-decoration:underline;padding:0;margin-top:2px;
-  }
+  header .who button{background:none;border:none;color:#e2b0b3;font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-top:2px;}
+
+  .site-bar{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;}
+  .site-bar-inner{max-width:640px;margin:0 auto;}
+  .site-bar label{font-size:12px;font-weight:600;margin-bottom:5px;display:block;}
+  .site-bar select{width:100%;padding:10px 11px;font-size:15px;border:1.5px solid var(--line);border-radius:7px;background:#fff;font-family:'Barlow',sans-serif;}
+  .site-status{font-size:11.5px;color:var(--grey);margin-top:5px;}
+
+  .tab-bar{display:flex;max-width:640px;margin:0 auto;background:#fff;border-bottom:1px solid var(--line);}
+  .tab-bar button{flex:1;padding:13px;border:none;background:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:14px;color:var(--grey);cursor:pointer;border-bottom:3px solid transparent;}
+  .tab-bar button.active{color:var(--red);border-bottom-color:var(--red);}
 
   main{max-width:640px;margin:0 auto;padding:16px;}
-  .card{
-    background:var(--card);
-    border-radius:10px;
-    padding:16px;
-    margin-bottom:16px;
-    box-shadow:0 1px 3px rgba(0,0,0,.06);
-    border:1px solid var(--line);
-  }
-  .section-label{
-    font-family:'Barlow Condensed',sans-serif;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.04em;
-    font-size:13px;
-    color:var(--red);
-    margin:0 0 12px;
-  }
-  label{
-    display:block;
-    font-size:13px;
-    font-weight:600;
-    margin:0 0 5px;
-    color:var(--ink);
-  }
+  .card{background:var(--card);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);}
+  .section-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px;color:var(--red);margin:0 0 12px;}
+  label{display:block;font-size:13px;font-weight:600;margin:0 0 5px;color:var(--ink);}
   label .req{color:var(--red);}
   label .hint{display:block;font-weight:400;color:var(--grey);font-size:11.5px;margin-top:2px;}
   input[type=text], input[type=date], select, textarea, input[type=file]{
-    width:100%;
-    padding:10px 11px;
-    font-family:'Barlow',sans-serif;
-    font-size:15px;
-    border:1.5px solid var(--line);
-    border-radius:7px;
-    background:#fff;
-    color:var(--ink);
-    margin-bottom:14px;
+    width:100%;padding:10px 11px;font-family:'Barlow',sans-serif;font-size:15px;
+    border:1.5px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);margin-bottom:14px;
   }
   textarea{resize:vertical;min-height:60px;}
   select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='%236b6b6b' d='M5 7l5 5 5-5z'/></svg>");background-repeat:no-repeat;background-position:right 10px center;}
+  select:disabled option:disabled{color:#ccc;}
   .field-error{border-color:var(--red) !important;}
   .error-msg{color:var(--red);font-size:12px;margin:-10px 0 12px;display:none;}
   .radio-row{display:flex;gap:10px;margin-bottom:14px;}
-  .radio-opt{
-    flex:1;border:1.5px solid var(--line);border-radius:7px;padding:10px;text-align:center;
-    font-weight:600;font-size:14px;cursor:pointer;user-select:none;color:var(--grey);
-  }
+  .radio-opt{flex:1;border:1.5px solid var(--line);border-radius:7px;padding:10px;text-align:center;font-weight:600;font-size:14px;cursor:pointer;user-select:none;color:var(--grey);}
   .radio-opt input{display:none;}
   .radio-opt.pass-sel{border-color:var(--pass);background:#eaf7ee;color:var(--pass);}
   .radio-opt.fail-sel{border-color:var(--fail);background:#fbe9e9;color:var(--fail);}
@@ -115,62 +60,48 @@
   .entry-head button{background:none;border:none;color:#e2b0b3;font-size:13px;cursor:pointer;font-weight:600;}
   .entry-body{padding:14px;}
 
-  .add-btn{
-    width:100%;padding:13px;background:#fff;border:2px dashed var(--red);color:var(--red);
-    border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;
-    letter-spacing:.03em;text-transform:uppercase;cursor:pointer;margin-bottom:6px;
-  }
+  .add-btn{width:100%;padding:13px;background:#fff;border:2px dashed var(--red);color:var(--red);border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;margin-bottom:6px;}
   .empty-note{text-align:center;color:var(--grey);font-size:13.5px;padding:18px 0;}
 
   .footer-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));}
   .footer-bar .inner{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center;}
   .footer-bar .count{font-size:12.5px;color:var(--grey);flex:1;}
-  .submit-btn{
-    background:var(--red);color:#fff;border:none;padding:13px 22px;border-radius:8px;
-    font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;
-    text-transform:uppercase;cursor:pointer;
-  }
+  .submit-btn{background:var(--red);color:#fff;border:none;padding:13px 22px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;}
   .submit-btn:disabled{background:#c9a3a5;cursor:not-allowed;}
   .submit-btn:active{background:var(--red-dark);}
 
   .banner{display:none;padding:12px 14px;border-radius:8px;font-size:13.5px;font-weight:600;margin-bottom:14px;}
   .banner.ok{background:#eaf7ee;color:var(--pass);border:1px solid #b9e2c4;}
   .banner.bad{background:#fbe9e9;color:var(--fail);border:1px solid #f0bcbe;}
-  .banner.info{background:#eef3fb;color:#2b5aa3;border:1px solid #c6d7f0;}
 
-  .site-status{font-size:12px;color:var(--grey);margin-top:-8px;margin-bottom:14px;}
-
-  /* Sign-in gate */
-  #signinScreen{
-    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:24px;text-align:center;background:var(--bg);
-  }
+  #signinScreen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--bg);}
   #signinScreen img{height:44px;margin-bottom:28px;}
   #signinScreen h2{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;font-size:20px;margin:0 0 8px;}
   #signinScreen p{color:var(--grey);font-size:14px;max-width:320px;margin:0 0 26px;}
-  .ms-btn{
-    display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;border:none;
-    padding:13px 22px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;
-  }
+  .ms-btn{display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;border:none;padding:13px 22px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;}
   .ms-btn:active{background:#000;}
   #signinScreen .err{color:var(--fail);font-size:13px;margin-top:16px;max-width:320px;}
   #appRoot{display:none;}
 
-  /* Already tested list */
-  .history-item{
-    border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
-  }
-  .history-item .eq{font-weight:600;font-size:14px;}
-  .history-item .meta{font-size:11.5px;color:var(--grey);margin-top:2px;}
-  .chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;}
+  .reg-subtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .reg-subtabs button{border:1.5px solid var(--line);background:#fff;color:var(--grey);font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:20px;cursor:pointer;}
+  .reg-subtabs button.active{border-color:var(--red);background:var(--red);color:#fff;}
+
+  .reg-item{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;}
+  .reg-item.overdue{border-color:var(--fail);background:#fff8f8;}
+  .reg-item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+  .reg-item .eq{font-weight:700;font-size:14.5px;}
+  .reg-item .cat{font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
+  .reg-item .detail-line{font-size:12.5px;color:var(--ink);margin-top:2px;}
+  .reg-item .meta{font-size:11.5px;color:var(--grey);margin-top:4px;}
+  .reg-item .meta.overdue-text{color:var(--fail);font-weight:700;}
+  .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
   .chip.pass{background:#eaf7ee;color:var(--pass);}
   .chip.fail{background:#fbe9e9;color:var(--fail);}
-  .retest-btn{
-    background:#fff;border:1.5px solid var(--red);color:var(--red);font-size:12px;font-weight:700;
-    padding:6px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;
-  }
-  .history-empty{color:var(--grey);font-size:13px;text-align:center;padding:10px 0;}
+  .chip.overdue{background:var(--fail);color:#fff;}
+  .reg-item-bottom{display:flex;justify-content:flex-end;margin-top:8px;}
+  .retest-btn{background:#fff;border:1.5px solid var(--red);color:var(--red);font-size:12px;font-weight:700;padding:6px 10px;border-radius:6px;cursor:pointer;}
+  .history-empty{color:var(--grey);font-size:13px;text-align:center;padding:16px 0;}
   .loading-note{color:var(--grey);font-size:13px;text-align:center;padding:6px 0;}
 </style>
 </head>
@@ -190,7 +121,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Test</h1>
-        <p>Log one or more tests for this visit</p>
+        <p id="versionLabel">v3.0</p>
       </div>
     </div>
     <div class="who">
@@ -199,46 +130,69 @@
     </div>
   </header>
 
-  <main>
-
-    <div id="banner" class="banner"></div>
-
-    <div class="card">
-      <p class="section-label">Visit details</p>
-
-      <label>Date <span class="req">*</span></label>
-      <input type="date" id="visitDate" required>
-
-      <label>Site <span class="req">*</span>
-        <span class="hint">All tests for a site get grouped by this — pick carefully</span>
-      </label>
+  <div class="site-bar">
+    <div class="site-bar-inner">
+      <label>Site <span class="req">*</span></label>
       <select id="site" required>
         <option value="" disabled selected>Loading site list…</option>
       </select>
       <p class="site-status" id="siteStatus"></p>
     </div>
+  </div>
 
-    <div class="card" id="historyCard" style="display:none;">
-      <p class="section-label">Already tested at this site</p>
-      <div id="historyList"></div>
+  <div class="tab-bar">
+    <button id="tabLogBtn" class="active">Log Test</button>
+    <button id="tabRegBtn">Site Register</button>
+  </div>
+
+  <main>
+
+    <div id="banner" class="banner"></div>
+
+    <!-- LOG TEST TAB -->
+    <div id="logTab">
+      <div class="card">
+        <p class="section-label">Visit details</p>
+        <label>Date <span class="req">*</span></label>
+        <input type="date" id="visitDate" required>
+      </div>
+
+      <div class="card">
+        <p class="section-label">Isolator / Interlock entries</p>
+        <div id="entries"></div>
+        <div class="empty-note" id="emptyNote">No entries added yet</div>
+        <button type="button" class="add-btn" id="addEntryBtn">+ Add Isolator / Interlock</button>
+      </div>
     </div>
 
-    <div class="card">
-      <p class="section-label">Isolator / Interlock entries</p>
-      <div id="entries"></div>
-      <div class="empty-note" id="emptyNote">No entries added yet</div>
-      <button type="button" class="add-btn" id="addEntryBtn">+ Add Isolator / Interlock</button>
+    <!-- REGISTER TAB -->
+    <div id="regTab" style="display:none;">
+      <div class="card">
+        <p class="section-label">Site register</p>
+        <div class="reg-subtabs" id="regSubtabs"></div>
+        <div id="regList"><div class="loading-note">Select a site to view its register.</div></div>
+      </div>
     </div>
 
   </main>
 
-  <div class="footer-bar">
+  <div class="footer-bar" id="footerBar">
     <div class="inner">
       <span class="count" id="entryCount">0 entries ready to submit</span>
       <button class="submit-btn" id="submitBtn">Submit</button>
     </div>
   </div>
 </div>
+
+<!-- shared suggestion lists, rebuilt whenever a site loads -->
+<datalist id="dl-panelName"></datalist>
+<datalist id="dl-millLocation"></datalist>
+<datalist id="dl-equipmentName"></datalist>
+<datalist id="dl-physicalLocation"></datalist>
+<datalist id="dl-relayLocation"></datalist>
+<datalist id="dl-equipmentAffected"></datalist>
+<datalist id="dl-description"></datalist>
+<datalist id="dl-equipmentId"></datalist>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -251,9 +205,10 @@ import {
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-// ---------------------------------------------------------------
-// Firebase config — from Project settings > General > Your apps
-// ---------------------------------------------------------------
+const VERSION = "v3.0";
+document.getElementById('versionLabel').textContent = VERSION + ' · Log one or more tests for this visit';
+console.log('Isolator/Interlock tool', VERSION);
+
 const firebaseConfig = {
   apiKey: "AIzaSyB5foKhRfIMG91bD5QyT7hHd1XBbeQGucw",
   authDomain: "simpson-wood-engineer-app.firebaseapp.com",
@@ -269,47 +224,67 @@ const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' });
 
+// ---------------------------------------------------------------
+// Category definitions — drives both the entry form and the register
+// ---------------------------------------------------------------
+const CATEGORIES = {
+  'Panel Isolator': { fields: [
+    { key: 'panelName', label: 'Panel Name', hint: 'E.g. Press line one routing', dl: 'panelName' }
+  ]},
+  'Motor Isolator': { fields: [
+    { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
+    { key: 'equipmentName', label: 'Equipment Name', hint: 'E.g. Press one press motor one, E1, C16', dl: 'equipmentName' }
+  ]},
+  'E-Stop': { fields: [
+    { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
+    { key: 'physicalLocation', label: 'Physical Location', hint: 'E.g. Press line one press deck, Press line one main panel', dl: 'physicalLocation' },
+    { key: 'relayLocation', label: 'Location of Safety Relay', hint: 'E.g. Press line one press panel, Press line one routing panel', dl: 'relayLocation' },
+    { key: 'equipmentAffected', label: 'Equipment Affected When Pressed', hint: 'E.g. Press only, All press routing', dl: 'equipmentAffected' }
+  ]},
+  'Safety Interlock': { fields: [
+    { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
+    { key: 'physicalLocation', label: 'Physical Location', hint: 'E.g. Press line one press door, Press line one conditioner one', dl: 'physicalLocation' },
+    { key: 'equipmentAffected', label: 'Equipment Affected', hint: 'E.g. Press only, All press routing', dl: 'equipmentAffected' }
+  ]},
+  'Other': { fields: [
+    { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
+    { key: 'physicalLocation', label: 'Physical Location', hint: 'E.g. Press line one press deck, Press line one main panel', dl: 'physicalLocation' },
+    { key: 'description', label: 'Description', hint: 'E.g. Conveyor pull chord E-stop', dl: 'description' }
+  ]}
+};
+const CATEGORY_NAMES = Object.keys(CATEGORIES);
+const DUE_DAYS = 365;
+
 let currentUser = null;
 let entryCounter = 0;
 const entries = {}; // id -> {photoBase64, photoName}
+let siteHistoryCache = []; // raw docs for currently selected site
+let activeRegTab = 'All';
 
 // ---- Sign-in ----
 function describeAuthError(err) {
-  if (err.code === 'auth/unauthorized-domain') {
-    return 'This site\'s domain isn\'t authorised in Firebase yet — add it under Authentication > Settings > Authorized domains.';
-  } else if (err.code === 'auth/operation-not-allowed') {
-    return 'Microsoft sign-in isn\'t enabled in Firebase yet — check Authentication > Sign-in method > Microsoft.';
-  } else if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-    return null; // handled by redirect fallback, not a real error
-  }
+  if (err.code === 'auth/unauthorized-domain') return 'This site\'s domain isn\'t authorised in Firebase yet.';
+  if (err.code === 'auth/operation-not-allowed') return 'Microsoft sign-in isn\'t enabled in Firebase yet.';
+  if (['auth/popup-blocked','auth/popup-closed-by-user','auth/cancelled-popup-request'].includes(err.code)) return null;
   return 'Sign-in failed — ' + (err.code || err.message || 'unknown error') + '.';
 }
-
 document.getElementById('msSignInBtn').addEventListener('click', () => {
   const errBox = document.getElementById('signinErr');
   errBox.textContent = '';
   signInWithPopup(auth, msProvider).catch(err => {
     if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
-      // fall back to redirect if the browser won't allow a popup
       signInWithRedirect(auth, msProvider).catch(err2 => {
-        const msg = describeAuthError(err2);
-        if (msg) errBox.textContent = msg;
+        const msg = describeAuthError(err2); if (msg) errBox.textContent = msg;
       });
       return;
     }
-    const msg = describeAuthError(err);
-    if (msg) errBox.textContent = msg;
+    const msg = describeAuthError(err); if (msg) errBox.textContent = msg;
   });
 });
-document.getElementById('signOutBtn').addEventListener('click', () => {
-  signOut(auth);
-});
-
+document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
 getRedirectResult(auth).catch(err => {
-  document.getElementById('signinErr').textContent =
-    'Sign-in failed — ' + (err.message || 'check your connection and try again.');
+  document.getElementById('signinErr').textContent = 'Sign-in failed — ' + (err.message || 'try again.');
 });
-
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   if (user) {
@@ -327,9 +302,22 @@ function boot() {
   document.getElementById('visitDate').valueAsDate = new Date();
   loadSites();
   if (document.querySelectorAll('.entry').length === 0) addEntry();
+  buildRegSubtabs();
 }
 
-// ---- Site list (from Firestore 'jobs' collection, status == Active) ----
+// ---- Tabs ----
+document.getElementById('tabLogBtn').addEventListener('click', () => switchTab('log'));
+document.getElementById('tabRegBtn').addEventListener('click', () => switchTab('reg'));
+function switchTab(which) {
+  document.getElementById('logTab').style.display = which === 'log' ? 'block' : 'none';
+  document.getElementById('regTab').style.display = which === 'reg' ? 'block' : 'none';
+  document.getElementById('footerBar').style.display = which === 'log' ? 'block' : 'none';
+  document.getElementById('tabLogBtn').classList.toggle('active', which === 'log');
+  document.getElementById('tabRegBtn').classList.toggle('active', which === 'reg');
+  if (which === 'reg') renderRegister();
+}
+
+// ---- Site list ----
 async function loadSites() {
   const siteSelect = document.getElementById('site');
   const status = document.getElementById('siteStatus');
@@ -351,23 +339,20 @@ async function loadSites() {
       });
     }
   } catch (e) {
-    status.textContent = 'Could not load site list — showing cached data if available.';
+    status.textContent = 'Could not load site list — ' + (e.message || e.code || 'unknown error');
   }
 }
+document.getElementById('site').addEventListener('change', () => {
+  loadSiteData().then(() => {
+    if (document.getElementById('regTab').style.display !== 'none') renderRegister();
+  });
+});
 
-document.getElementById('site').addEventListener('change', loadHistory);
-
-// ---- History: everything already tested at the selected site ----
-async function loadHistory() {
-  const siteSelect = document.getElementById('site');
-  const siteRef = siteSelect.value;
-  const historyCard = document.getElementById('historyCard');
-  const list = document.getElementById('historyList');
-  if (!siteRef) { historyCard.style.display = 'none'; return; }
-
-  historyCard.style.display = 'block';
-  list.innerHTML = '<div class="loading-note">Loading test history…</div>';
-
+// ---- Load all history for the selected site (feeds both suggestions and register) ----
+async function loadSiteData() {
+  const siteRef = document.getElementById('site').value;
+  siteHistoryCache = [];
+  if (!siteRef) return;
   try {
     const q = query(
       collection(db, 'isolatorTests'),
@@ -376,54 +361,134 @@ async function loadHistory() {
       orderBy('date')
     );
     const snap = await getDocs(q);
-    if (snap.empty) {
-      list.innerHTML = '<div class="history-empty">Nothing logged for this site yet — it\'ll be the first entry.</div>';
-      return;
-    }
-    // group by equipmentId, keep the latest per group for display
-    const byEquip = {};
-    snap.forEach(docSnap => {
-      const d = docSnap.data();
-      if (!byEquip[d.equipmentId]) byEquip[d.equipmentId] = [];
-      byEquip[d.equipmentId].push(d);
-    });
-    list.innerHTML = '';
-    Object.keys(byEquip).sort().forEach(eq => {
-      const history = byEquip[eq];
-      const latest = history[history.length - 1];
-      const row = document.createElement('div');
-      row.className = 'history-item';
-      const overallPass = latest.opDevice === 'Pass' && latest.opControls === 'Pass';
-      row.innerHTML = `
-        <div>
-          <div class="eq">${eq}</div>
-          <div class="meta">${latest.type || ''} · last tested ${latest.date || ''} by ${latest.engineer || ''} · ${history.length} test${history.length > 1 ? 's' : ''} on record</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="chip ${overallPass ? 'pass' : 'fail'}">${overallPass ? 'Pass' : 'Fail'}</span>
-          <button type="button" class="retest-btn" data-eq="${eq}" data-type="${latest.type || ''}" data-route="${latest.route || ''}" data-part="${latest.partNumber || ''}">Retest</button>
-        </div>
-      `;
-      list.appendChild(row);
-    });
-    list.querySelectorAll('.retest-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        addEntry({
-          equipmentId: btn.dataset.eq,
-          type: btn.dataset.type,
-          route: btn.dataset.route,
-          partNumber: btn.dataset.part
-        });
-        window.scrollTo({ top: document.getElementById('entries').offsetTop - 20, behavior: 'smooth' });
-      });
-    });
+    snap.forEach(docSnap => siteHistoryCache.push(docSnap.data()));
+    rebuildSuggestions();
   } catch (e) {
-    console.error('History load failed:', e);
-    list.innerHTML = '<div class="history-empty">Could not load history — ' + (e.message || e.code || 'unknown error') + '</div>';
+    console.error('Site data load failed:', e);
+    document.getElementById('regList').innerHTML =
+      '<div class="history-empty">Could not load site data — ' + (e.message || e.code || 'unknown error') + '</div>';
   }
 }
 
+function rebuildSuggestions() {
+  const pools = { panelName:new Set(), millLocation:new Set(), equipmentName:new Set(),
+    physicalLocation:new Set(), relayLocation:new Set(), equipmentAffected:new Set(),
+    description:new Set(), equipmentId:new Set() };
+  siteHistoryCache.forEach(d => {
+    Object.keys(pools).forEach(k => { if (d[k]) pools[k].add(d[k]); });
+  });
+  Object.keys(pools).forEach(k => {
+    const dl = document.getElementById('dl-' + k);
+    if (dl) dl.innerHTML = Array.from(pools[k]).sort().map(v => `<option value="${v.replace(/"/g,'&quot;')}">`).join('');
+  });
+}
+
+// ---- Register ----
+function buildRegSubtabs() {
+  const wrap = document.getElementById('regSubtabs');
+  const tabs = ['All', ...CATEGORY_NAMES];
+  wrap.innerHTML = tabs.map(t => `<button data-tab="${t}" class="${t === activeRegTab ? 'active' : ''}">${t}</button>`).join('');
+  wrap.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeRegTab = btn.dataset.tab;
+      wrap.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      renderRegister();
+    });
+  });
+}
+
+function renderRegister() {
+  const list = document.getElementById('regList');
+  const siteRef = document.getElementById('site').value;
+  if (!siteRef) { list.innerHTML = '<div class="loading-note">Select a site to view its register.</div>'; return; }
+  if (siteHistoryCache.length === 0) { list.innerHTML = '<div class="history-empty">Nothing logged for this site yet.</div>'; return; }
+
+  const byEquip = {};
+  siteHistoryCache.forEach(d => {
+    if (!byEquip[d.equipmentId]) byEquip[d.equipmentId] = [];
+    byEquip[d.equipmentId].push(d);
+  });
+
+  let groups = Object.keys(byEquip).map(eq => {
+    const hist = byEquip[eq];
+    const latest = hist[hist.length - 1];
+    return { eq, hist, latest };
+  });
+  if (activeRegTab !== 'All') groups = groups.filter(g => g.latest.category === activeRegTab);
+  groups.sort((a, b) => a.eq.localeCompare(b.eq));
+
+  if (groups.length === 0) { list.innerHTML = '<div class="history-empty">Nothing in this category yet.</div>'; return; }
+
+  const today = new Date();
+  list.innerHTML = groups.map(g => {
+    const latest = g.latest;
+    const overallPass = latest.opDevice === 'Pass' && latest.opControls === 'Pass';
+    let daysSince = null, overdue = false;
+    if (latest.date) {
+      daysSince = Math.floor((today - new Date(latest.date)) / 86400000);
+      overdue = daysSince > DUE_DAYS;
+    }
+    const catFields = (CATEGORIES[latest.category] || {}).fields || [];
+    const detailLine = catFields.map(f => latest[f.key]).filter(Boolean).join(' · ');
+    return `
+      <div class="reg-item ${overdue ? 'overdue' : ''}">
+        <div class="reg-item-top">
+          <div>
+            <div class="cat">${latest.category || 'Uncategorised'}</div>
+            <div class="eq">${g.eq}</div>
+            ${detailLine ? `<div class="detail-line">${detailLine}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <span class="chip ${overallPass ? 'pass' : 'fail'}">${overallPass ? 'Pass' : 'Fail'}</span>
+            ${overdue ? '<span class="chip overdue">Overdue</span>' : ''}
+          </div>
+        </div>
+        <div class="meta ${overdue ? 'overdue-text' : ''}">
+          Last tested ${latest.date || '—'} by ${latest.engineer || '—'}
+          ${daysSince !== null ? ` · ${daysSince} days ago` : ''}
+          · ${g.hist.length} test${g.hist.length > 1 ? 's' : ''} on record
+        </div>
+        <div class="reg-item-bottom">
+          <button type="button" class="retest-btn" data-eq="${g.eq}">Retest</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.retest-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const eq = btn.dataset.eq;
+      const latest = byEquip[eq][byEquip[eq].length - 1];
+      addEntry(latest);
+      switchTab('log');
+      window.scrollTo({ top: document.getElementById('entries').offsetTop - 20, behavior: 'smooth' });
+    });
+  });
+}
+
 // ---- Entry management ----
+function renderCategoryFields(wrap, category, prefill) {
+  const container = wrap.querySelector('[data-role="catFields"]');
+  const def = CATEGORIES[category];
+  if (!def) { container.innerHTML = ''; return; }
+  container.innerHTML = def.fields.map(f => `
+    <label>${f.label} <span class="req">*</span><span class="hint">${f.hint}</span></label>
+    <input type="text" data-field="${f.key}" list="dl-${f.dl}" value="${prefill && prefill[f.key] ? prefill[f.key] : ''}">
+    <div class="error-msg">${f.label} is required</div>
+  `).join('');
+}
+
+function updateActionConstraint(wrap) {
+  const opDevice = wrap.querySelector('[data-radio="opDevice"]').getAttribute('data-value-selected');
+  const opControls = wrap.querySelector('[data-radio="opControls"]').getAttribute('data-value-selected');
+  const anyFail = opDevice === 'Fail' || opControls === 'Fail';
+  const actionSelect = wrap.querySelector('[data-field="action"]');
+  const noOption = actionSelect.querySelector('option[value="No"]');
+  noOption.disabled = anyFail;
+  if (anyFail && actionSelect.value === 'No') actionSelect.value = '';
+  wrap.querySelector('[data-role="actionHint"]').style.display = anyFail ? 'block' : 'none';
+}
+
 function addEntry(prefill) {
   entryCounter++;
   const id = 'e' + entryCounter;
@@ -440,83 +505,76 @@ function addEntry(prefill) {
     </div>
     <div class="entry-body">
 
-      <label>Equipment ID <span class="req">*</span>
-        <span class="hint">E.g. G1 interlock one, E1 bottom isolator</span>
-      </label>
-      <input type="text" data-field="equipmentId" value="${prefill ? prefill.equipmentId : ''}">
+      <label>Equipment ID <span class="req">*</span><span class="hint">Reuse the existing ID if this is a retest</span></label>
+      <input type="text" data-field="equipmentId" list="dl-equipmentId" value="${prefill ? prefill.equipmentId : ''}">
       <div class="error-msg">Equipment ID is required</div>
 
-      <label>Type <span class="req">*</span></label>
-      <select data-field="type">
-        <option value="" ${!prefill ? 'disabled selected' : ''}>Select type</option>
-        <option ${prefill && prefill.type === 'Isolator' ? 'selected' : ''}>Isolator</option>
-        <option ${prefill && prefill.type === 'Interlock' ? 'selected' : ''}>Interlock</option>
-        <option ${prefill && prefill.type === 'E-Stop button' ? 'selected' : ''}>E-Stop button</option>
-        <option ${prefill && prefill.type === 'Other' ? 'selected' : ''}>Other</option>
+      <label>Category <span class="req">*</span></label>
+      <select data-field="category">
+        <option value="" ${!prefill ? 'disabled selected' : ''}>Select category</option>
+        ${CATEGORY_NAMES.map(c => `<option ${prefill && prefill.category === c ? 'selected' : ''}>${c}</option>`).join('')}
       </select>
-      <div class="error-msg">Type is required</div>
+      <div class="error-msg">Category is required</div>
 
-      <label>Route <span class="req">*</span>
-        <span class="hint">E.g. Press line 1, Grinder 1 discharge, Mixing shed</span>
-      </label>
-      <input type="text" data-field="route" value="${prefill ? prefill.route : ''}">
-      <div class="error-msg">Route is required</div>
+      <div data-role="catFields"></div>
 
-      <label>Operation of device <span class="req">*</span>
-        <span class="hint">E.g. Isolator isolates motor, Interlock switches associated safety relay</span>
-      </label>
+      <label>Operation of device <span class="req">*</span><span class="hint">E.g. Isolator isolates motor, Interlock switches associated safety relay</span></label>
       <div class="radio-row" data-radio="opDevice">
         <div class="radio-opt" data-value="Pass"><input type="radio">Pass</div>
         <div class="radio-opt" data-value="Fail"><input type="radio">Fail</div>
       </div>
       <div class="error-msg" data-error-for="opDevice">Required</div>
 
-      <label>Operation of related controls <span class="req">*</span>
-        <span class="hint">Do associated control circuits operate — e.g. feed route stops, E-stop relay requires resetting</span>
-      </label>
+      <label>Operation of related controls <span class="req">*</span><span class="hint">Do associated control circuits operate — e.g. feed route stops, E-stop relay requires resetting</span></label>
       <div class="radio-row" data-radio="opControls">
         <div class="radio-opt" data-value="Pass"><input type="radio">Pass</div>
         <div class="radio-opt" data-value="Fail"><input type="radio">Fail</div>
       </div>
       <div class="error-msg" data-error-for="opControls">Required</div>
 
-      <label>Further action required</label>
+      <label>Further action required <span class="req">*</span></label>
       <select data-field="action">
-        <option value="No" selected>No</option>
+        <option value="" disabled selected>Select</option>
+        <option value="No">No</option>
         <option value="Requires Replacement">Requires Replacement</option>
         <option value="Requires Remedial Works">Requires Remedial Works</option>
       </select>
+      <div class="hint" data-role="actionHint" style="display:none;margin:-10px 0 12px;color:var(--fail);">A Fail above means this can't be left as "No"</div>
+      <div class="error-msg" data-error-for="action">Required — and can't be "No" if either test above failed</div>
 
-      <label>Details <span class="req">*</span>
-        <span class="hint">E.g. 32a 3phase Eaton rotary isolator or Guardmaster Trojan 5</span>
-      </label>
+      <label>Details <span class="req">*</span><span class="hint">E.g. 32a 3phase Eaton rotary isolator or Guardmaster Trojan 5</span></label>
       <textarea data-field="details"></textarea>
       <div class="error-msg">Details is required</div>
 
       <label>Part number <span class="req">*</span></label>
-      <input type="text" data-field="partNumber" value="${prefill ? prefill.partNumber : ''}">
+      <input type="text" data-field="partNumber" value="${prefill && prefill.partNumber ? prefill.partNumber : ''}">
       <div class="error-msg">Part number is required</div>
 
       <label>Notes</label>
       <textarea data-field="notes"></textarea>
 
-      <label>Photo <span class="hint">Optional — keep file size small, large photos may fail to sync</span></label>
+      <label>Photo <span class="req">*</span></label>
       <input type="file" accept="image/*" capture="environment" data-field="photo">
+      <div class="error-msg" data-error-for="photo">A photo is required</div>
     </div>
   `;
 
   document.getElementById('entries').appendChild(wrap);
   document.getElementById('emptyNote').style.display = 'none';
 
+  renderCategoryFields(wrap, prefill ? prefill.category : '', prefill);
+
   wrap.querySelector('[data-role="remove"]').addEventListener('click', () => {
-    wrap.remove();
-    delete entries[id];
-    updateCount();
+    wrap.remove(); delete entries[id]; updateCount();
     if (Object.keys(entries).length === 0) document.getElementById('emptyNote').style.display = 'block';
   });
 
   wrap.querySelector('[data-field="equipmentId"]').addEventListener('input', (e) => {
     wrap.querySelector('[data-role="eqlabel"]').textContent = e.target.value || 'New entry';
+  });
+
+  wrap.querySelector('[data-field="category"]').addEventListener('change', (e) => {
+    renderCategoryFields(wrap, e.target.value);
   });
 
   wrap.querySelectorAll('[data-radio]').forEach(group => {
@@ -526,6 +584,7 @@ function addEntry(prefill) {
         const val = opt.getAttribute('data-value');
         opt.classList.add(val === 'Pass' ? 'pass-sel' : 'fail-sel');
         group.setAttribute('data-value-selected', val);
+        updateActionConstraint(wrap);
       });
     });
   });
@@ -540,7 +599,6 @@ function addEntry(prefill) {
 
   updateCount();
 }
-
 document.getElementById('addEntryBtn').addEventListener('click', () => addEntry());
 
 function updateCount() {
@@ -555,39 +613,63 @@ function collectAndValidate() {
 
   document.querySelectorAll('.entry').forEach(wrap => {
     const get = sel => wrap.querySelector(sel);
-    const val = f => get(`[data-field="${f}"]`).value.trim();
+    const val = f => { const el = get(`[data-field="${f}"]`); return el ? el.value.trim() : ''; };
 
+    const category = val('category');
     const record = {
-      equipmentId: val('equipmentId'), type: val('type'), route: val('route'),
+      equipmentId: val('equipmentId'), category,
       action: val('action'), details: val('details'), partNumber: val('partNumber'), notes: val('notes'),
     };
+    (CATEGORIES[category] ? CATEGORIES[category].fields : []).forEach(f => { record[f.key] = val(f.key); });
 
     ['opDevice','opControls'].forEach(key => {
       const group = wrap.querySelector(`[data-radio="${key}"]`);
       record[key] = group.getAttribute('data-value-selected') || '';
     });
 
-    ['equipmentId','type','route','details','partNumber'].forEach(f => {
-      const el = get(`[data-field="${f}"]`);
+    const mark = (el, ok) => {
       const errEl = el.nextElementSibling && el.nextElementSibling.classList.contains('error-msg') ? el.nextElementSibling : null;
-      if (!record[f]) {
-        valid = false; el.classList.add('field-error'); if (errEl) errEl.style.display = 'block';
-      } else {
-        el.classList.remove('field-error'); if (errEl) errEl.style.display = 'none';
-      }
+      el.classList.toggle('field-error', !ok);
+      if (errEl) errEl.style.display = ok ? 'none' : 'block';
+      if (!ok) valid = false;
+    };
+
+    mark(get('[data-field="equipmentId"]'), !!record.equipmentId);
+    mark(get('[data-field="category"]'), !!record.category);
+    mark(get('[data-field="details"]'), !!record.details);
+    mark(get('[data-field="partNumber"]'), !!record.partNumber);
+
+    (CATEGORIES[category] ? CATEGORIES[category].fields : []).forEach(f => {
+      const el = get(`[data-field="${f.key}"]`);
+      if (el) mark(el, !!record[f.key]);
     });
 
     ['opDevice','opControls'].forEach(key => {
       const errEl = wrap.querySelector(`[data-error-for="${key}"]`);
-      if (!record[key]) { valid = false; if (errEl) errEl.style.display = 'block'; }
-      else if (errEl) errEl.style.display = 'none';
+      const ok = !!record[key];
+      if (errEl) errEl.style.display = ok ? 'none' : 'block';
+      if (!ok) valid = false;
     });
+
+    const anyFail = record.opDevice === 'Fail' || record.opControls === 'Fail';
+    const actionOk = record.action && !(anyFail && record.action === 'No');
+    const actionErrEl = wrap.querySelector('[data-error-for="action"]');
+    get('[data-field="action"]').classList.toggle('field-error', !actionOk);
+    if (actionErrEl) actionErrEl.style.display = actionOk ? 'none' : 'block';
+    if (!actionOk) valid = false;
 
     const id = wrap.id;
     record.photoBase64 = entries[id] ? (entries[id].photoBase64 || null) : null;
+    const photoErrEl = wrap.querySelector('[data-error-for="photo"]');
+    const photoOk = !!record.photoBase64;
+    if (photoErrEl) photoErrEl.style.display = photoOk ? 'none' : 'block';
+    if (!photoOk) valid = false;
     if (record.photoBase64 && record.photoBase64.length > 900000) {
-      record.photoBase64 = null; // guard against blowing the 1MB Firestore doc limit
+      record.photoBase64 = null;
+      if (photoErrEl) { photoErrEl.textContent = 'Photo file is too large — use a smaller/lower-res photo'; photoErrEl.style.display = 'block'; }
+      valid = false;
     }
+
     collected.push(record);
   });
 
@@ -605,47 +687,32 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const siteName = siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '';
 
   if (document.querySelectorAll('.entry').length === 0) {
-    banner.className = 'banner bad';
-    banner.textContent = 'Add at least one isolator/interlock entry before submitting.';
-    banner.style.display = 'block';
-    return;
+    banner.className = 'banner bad'; banner.textContent = 'Add at least one isolator/interlock entry before submitting.';
+    banner.style.display = 'block'; return;
+  }
+  if (!date || !siteRef) {
+    banner.className = 'banner bad'; banner.textContent = 'Date and site are both required.';
+    banner.style.display = 'block'; window.scrollTo({top:0, behavior:'smooth'}); return;
   }
 
   const { valid, collected } = collectAndValidate();
-
-  if (!date || !siteRef) {
-    banner.className = 'banner bad';
-    banner.textContent = 'Date and site are both required.';
-    banner.style.display = 'block';
-    window.scrollTo({top:0, behavior:'smooth'});
-    return;
-  }
-
   if (!valid) {
-    banner.className = 'banner bad';
-    banner.textContent = 'Please fill in all required fields, highlighted below.';
-    banner.style.display = 'block';
-    return;
+    banner.className = 'banner bad'; banner.textContent = 'Please fill in all required fields, highlighted below.';
+    banner.style.display = 'block'; return;
   }
 
   const submitBtn = document.getElementById('submitBtn');
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Submitting…';
+  submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
 
   try {
-    // Fire all writes without blocking on server ack — Firestore queues these
-    // locally and syncs automatically once there's signal, which is the point.
     collected.forEach(rec => {
       addDoc(collection(db, 'isolatorTests'), {
         siteRef, siteName, date,
         engineer: currentUser.displayName || currentUser.email,
         engineerEmail: currentUser.email,
-        equipmentId: rec.equipmentId, type: rec.type, route: rec.route,
-        opDevice: rec.opDevice, opControls: rec.opControls, action: rec.action,
-        details: rec.details, partNumber: rec.partNumber, notes: rec.notes,
-        photoBase64: rec.photoBase64,
+        ...rec,
         createdAt: serverTimestamp()
-      }).catch(() => { /* handled by Firestore's own offline retry */ });
+      }).catch(() => {});
     });
 
     banner.className = 'banner ok';
@@ -656,14 +723,11 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     document.getElementById('entries').innerHTML = '';
     document.getElementById('emptyNote').style.display = 'block';
     addEntry();
-    loadHistory();
+    loadSiteData();
   } catch (e) {
-    banner.className = 'banner bad';
-    banner.textContent = 'Something went wrong — try again.';
-    banner.style.display = 'block';
+    banner.className = 'banner bad'; banner.textContent = 'Something went wrong — try again.'; banner.style.display = 'block';
   } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit';
+    submitBtn.disabled = false; submitBtn.textContent = 'Submit';
   }
 });
 </script>
