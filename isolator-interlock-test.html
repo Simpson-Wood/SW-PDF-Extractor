@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isolator / Interlock Test — Simpson & Wood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#D0222A;
+    --red-dark:#a91b22;
+    --ink:#1a1a1a;
+    --grey:#6b6b6b;
+    --line:#e2e2e2;
+    --bg:#f6f5f4;
+    --card:#ffffff;
+    --pass:#1f8a3d;
+    --fail:#c0272d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Barlow',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:100px;
+  }
+  header{
+    background:var(--ink);
+    padding:18px 16px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  header .brand{display:flex;align-items:center;gap:12px;}
+  header img{height:34px;display:block;}
+  header .title-block h1{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:.02em;
+    color:#fff;
+    margin:0;
+    text-transform:uppercase;
+  }
+  header .title-block p{
+    margin:2px 0 0;
+    font-size:12px;
+    color:#bdbdbd;
+  }
+  header .who{text-align:right;}
+  header .who .name{color:#fff;font-size:12.5px;font-weight:600;}
+  header .who button{
+    background:none;border:none;color:#e2b0b3;font-size:11.5px;cursor:pointer;
+    text-decoration:underline;padding:0;margin-top:2px;
+  }
+
+  main{max-width:640px;margin:0 auto;padding:16px;}
+  .card{
+    background:var(--card);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:16px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+    border:1px solid var(--line);
+  }
+  .section-label{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    font-size:13px;
+    color:var(--red);
+    margin:0 0 12px;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    margin:0 0 5px;
+    color:var(--ink);
+  }
+  label .req{color:var(--red);}
+  label .hint{display:block;font-weight:400;color:var(--grey);font-size:11.5px;margin-top:2px;}
+  input[type=text], input[type=date], select, textarea, input[type=file]{
+    width:100%;
+    padding:10px 11px;
+    font-family:'Barlow',sans-serif;
+    font-size:15px;
+    border:1.5px solid var(--line);
+    border-radius:7px;
+    background:#fff;
+    color:var(--ink);
+    margin-bottom:14px;
+  }
+  textarea{resize:vertical;min-height:60px;}
+  select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='%236b6b6b' d='M5 7l5 5 5-5z'/></svg>");background-repeat:no-repeat;background-position:right 10px center;}
+  .field-error{border-color:var(--red) !important;}
+  .error-msg{color:var(--red);font-size:12px;margin:-10px 0 12px;display:none;}
+  .radio-row{display:flex;gap:10px;margin-bottom:14px;}
+  .radio-opt{
+    flex:1;border:1.5px solid var(--line);border-radius:7px;padding:10px;text-align:center;
+    font-weight:600;font-size:14px;cursor:pointer;user-select:none;color:var(--grey);
+  }
+  .radio-opt.pass-sel{border-color:var(--pass);background:#eaf7ee;color:var(--pass);}
+  .radio-opt.fail-sel{border-color:var(--fail);background:#fbe9e9;color:var(--fail);}
+
+  .entry{border:1.5px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+  .entry-head{background:var(--ink);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .entry-head .tag{background:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;}
+  .entry-head .eq-id{font-weight:600;font-size:14px;}
+  .entry-head button{background:none;border:none;color:#e2b0b3;font-size:13px;cursor:pointer;font-weight:600;}
+  .entry-body{padding:14px;}
+
+  .add-btn{
+    width:100%;padding:13px;background:#fff;border:2px dashed var(--red);color:var(--red);
+    border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;
+    letter-spacing:.03em;text-transform:uppercase;cursor:pointer;margin-bottom:6px;
+  }
+  .empty-note{text-align:center;color:var(--grey);font-size:13.5px;padding:18px 0;}
+
+  .footer-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));}
+  .footer-bar .inner{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center;}
+  .footer-bar .count{font-size:12.5px;color:var(--grey);flex:1;}
+  .submit-btn{
+    background:var(--red);color:#fff;border:none;padding:13px 22px;border-radius:8px;
+    font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;
+    text-transform:uppercase;cursor:pointer;
+  }
+  .submit-btn:disabled{background:#c9a3a5;cursor:not-allowed;}
+  .submit-btn:active{background:var(--red-dark);}
+
+  .banner{display:none;padding:12px 14px;border-radius:8px;font-size:13.5px;font-weight:600;margin-bottom:14px;}
+  .banner.ok{background:#eaf7ee;color:var(--pass);border:1px solid #b9e2c4;}
+  .banner.bad{background:#fbe9e9;color:var(--fail);border:1px solid #f0bcbe;}
+  .banner.info{background:#eef3fb;color:#2b5aa3;border:1px solid #c6d7f0;}
+
+  .site-status{font-size:12px;color:var(--grey);margin-top:-8px;margin-bottom:14px;}
+
+  /* Sign-in gate */
+  #signinScreen{
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:24px;text-align:center;background:var(--bg);
+  }
+  #signinScreen img{height:44px;margin-bottom:28px;}
+  #signinScreen h2{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;font-size:20px;margin:0 0 8px;}
+  #signinScreen p{color:var(--grey);font-size:14px;max-width:320px;margin:0 0 26px;}
+  .ms-btn{
+    display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;border:none;
+    padding:13px 22px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;
+  }
+  .ms-btn:active{background:#000;}
+  #signinScreen .err{color:var(--fail);font-size:13px;margin-top:16px;max-width:320px;}
+  #appRoot{display:none;}
+
+  /* Already tested list */
+  .history-item{
+    border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .history-item .eq{font-weight:600;font-size:14px;}
+  .history-item .meta{font-size:11.5px;color:var(--grey);margin-top:2px;}
+  .chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;}
+  .chip.pass{background:#eaf7ee;color:var(--pass);}
+  .chip.fail{background:#fbe9e9;color:var(--fail);}
+  .retest-btn{
+    background:#fff;border:1.5px solid var(--red);color:var(--red);font-size:12px;font-weight:700;
+    padding:6px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;
+  }
+  .history-empty{color:var(--grey);font-size:13px;text-align:center;padding:10px 0;}
+  .loading-note{color:var(--grey);font-size:13px;text-align:center;padding:6px 0;}
+</style>
+</head>
+<body>
+
+<div id="signinScreen">
+  <img src="sw-logo.png" alt="Simpson & Wood">
+  <h2>Isolator / Interlock Test</h2>
+  <p>Sign in with your Simpson &amp; Wood Microsoft account to log or review tests.</p>
+  <button class="ms-btn" id="msSignInBtn">Sign in with Microsoft</button>
+  <div class="err" id="signinErr"></div>
+</div>
+
+<div id="appRoot">
+  <header>
+    <div class="brand">
+      <img src="sw-logo.png" alt="Simpson & Wood">
+      <div class="title-block">
+        <h1>Isolator / Interlock Test</h1>
+        <p>Log one or more tests for this visit</p>
+      </div>
+    </div>
+    <div class="who">
+      <div class="name" id="whoName">—</div>
+      <button id="signOutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+
+    <div id="banner" class="banner"></div>
+
+    <div class="card">
+      <p class="section-label">Visit details</p>
+
+      <label>Date <span class="req">*</span></label>
+      <input type="date" id="visitDate" required>
+
+      <label>Site <span class="req">*</span>
+        <span class="hint">All tests for a site get grouped by this — pick carefully</span>
+      </label>
+      <select id="site" required>
+        <option value="" disabled selected>Loading site list…</option>
+      </select>
+      <p class="site-status" id="siteStatus"></p>
+    </div>
+
+    <div class="card" id="historyCard" style="display:none;">
+      <p class="section-label">Already tested at this site</p>
+      <div id="historyList"></div>
+    </div>
+
+    <div class="card">
+      <p class="section-label">Isolator / Interlock entries</p>
+      <div id="entries"></div>
+      <div class="empty-note" id="emptyNote">No entries added yet</div>
+      <button type="button" class="add-btn" id="addEntryBtn">+ Add Isolator / Interlock</button>
+    </div>
+
+  </main>
+
+  <div class="footer-bar">
+    <div class="inner">
+      <span class="count" id="entryCount">0 entries ready to submit</span>
+      <button class="submit-btn" id="submitBtn">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getAuth, OAuthProvider, signInWithRedirect, getRedirectResult,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {
+  initializeFirestore, persistentLocalCache, collection, addDoc, getDocs,
+  query, where, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// ---------------------------------------------------------------
+// Firebase config — from Project settings > General > Your apps
+// ---------------------------------------------------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyB5foKhRfIMG91bD5QyT7hHd1XBbeQGucw",
+  authDomain: "simpson-wood-engineer-app.firebaseapp.com",
+  projectId: "simpson-wood-engineer-app",
+  storageBucket: "simpson-wood-engineer-app.firebasestorage.app",
+  messagingSenderId: "201961281346",
+  appId: "1:201961281346:web:3c7386b73b41ce9df35adb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+const msProvider = new OAuthProvider('microsoft.com');
+
+let currentUser = null;
+let entryCounter = 0;
+const entries = {}; // id -> {photoBase64, photoName}
+
+// ---- Sign-in ----
+document.getElementById('msSignInBtn').addEventListener('click', () => {
+  const errBox = document.getElementById('signinErr');
+  errBox.textContent = '';
+  signInWithRedirect(auth, msProvider).catch(err => {
+    if (err.code === 'auth/unauthorized-domain') {
+      errBox.textContent = 'This site\'s domain isn\'t authorised in Firebase yet — add it under Authentication > Settings > Authorized domains.';
+    } else if (err.code === 'auth/operation-not-allowed') {
+      errBox.textContent = 'Microsoft sign-in isn\'t enabled in Firebase yet — check Authentication > Sign-in method > Microsoft.';
+    } else {
+      errBox.textContent = 'Sign-in failed to start — ' + (err.message || err.code || 'unknown error') + '.';
+    }
+  });
+});
+document.getElementById('signOutBtn').addEventListener('click', () => {
+  signOut(auth);
+});
+
+getRedirectResult(auth).catch(err => {
+  document.getElementById('signinErr').textContent =
+    'Sign-in failed — ' + (err.message || 'check your connection and try again.');
+});
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('signinScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    document.getElementById('whoName').textContent = user.displayName || user.email;
+    boot();
+  } else {
+    document.getElementById('signinScreen').style.display = 'flex';
+    document.getElementById('appRoot').style.display = 'none';
+  }
+});
+
+function boot() {
+  document.getElementById('visitDate').valueAsDate = new Date();
+  loadSites();
+  if (document.querySelectorAll('.entry').length === 0) addEntry();
+}
+
+// ---- Site list (from Firestore 'jobs' collection, status == Active) ----
+async function loadSites() {
+  const siteSelect = document.getElementById('site');
+  const status = document.getElementById('siteStatus');
+  siteSelect.innerHTML = '<option value="" disabled selected>Loading…</option>';
+  try {
+    const q = query(collection(db, 'jobs'), where('status', '==', 'Active'));
+    const snap = await getDocs(q);
+    siteSelect.innerHTML = '<option value="" disabled selected>Select site</option>';
+    if (snap.empty) {
+      status.textContent = 'No active sites found — add one to the "jobs" collection in Firestore.';
+    } else {
+      status.textContent = '';
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const opt = document.createElement('option');
+        opt.value = docSnap.id;
+        opt.textContent = d.name || docSnap.id;
+        siteSelect.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    status.textContent = 'Could not load site list — showing cached data if available.';
+  }
+}
+
+document.getElementById('site').addEventListener('change', loadHistory);
+
+// ---- History: everything already tested at the selected site ----
+async function loadHistory() {
+  const siteSelect = document.getElementById('site');
+  const siteRef = siteSelect.value;
+  const historyCard = document.getElementById('historyCard');
+  const list = document.getElementById('historyList');
+  if (!siteRef) { historyCard.style.display = 'none'; return; }
+
+  historyCard.style.display = 'block';
+  list.innerHTML = '<div class="loading-note">Loading test history…</div>';
+
+  try {
+    const q = query(
+      collection(db, 'isolatorTests'),
+      where('siteRef', '==', siteRef),
+      orderBy('equipmentId'),
+      orderBy('date')
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      list.innerHTML = '<div class="history-empty">Nothing logged for this site yet — it\'ll be the first entry.</div>';
+      return;
+    }
+    // group by equipmentId, keep the latest per group for display
+    const byEquip = {};
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      if (!byEquip[d.equipmentId]) byEquip[d.equipmentId] = [];
+      byEquip[d.equipmentId].push(d);
+    });
+    list.innerHTML = '';
+    Object.keys(byEquip).sort().forEach(eq => {
+      const history = byEquip[eq];
+      const latest = history[history.length - 1];
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      const overallPass = latest.opDevice === 'Pass' && latest.opControls === 'Pass';
+      row.innerHTML = `
+        <div>
+          <div class="eq">${eq}</div>
+          <div class="meta">${latest.type || ''} · last tested ${latest.date || ''} by ${latest.engineer || ''} · ${history.length} test${history.length > 1 ? 's' : ''} on record</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="chip ${overallPass ? 'pass' : 'fail'}">${overallPass ? 'Pass' : 'Fail'}</span>
+          <button type="button" class="retest-btn" data-eq="${eq}" data-type="${latest.type || ''}" data-route="${latest.route || ''}" data-part="${latest.partNumber || ''}">Retest</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.retest-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        addEntry({
+          equipmentId: btn.dataset.eq,
+          type: btn.dataset.type,
+          route: btn.dataset.route,
+          partNumber: btn.dataset.part
+        });
+        window.scrollTo({ top: document.getElementById('entries').offsetTop - 20, behavior: 'smooth' });
+      });
+    });
+  } catch (e) {
+    list.innerHTML = '<div class="history-empty">Could not load history — offline, or index still building.</div>';
+  }
+}
+
+// ---- Entry management ----
+function addEntry(prefill) {
+  entryCounter++;
+  const id = 'e' + entryCounter;
+  entries[id] = {};
+
+  const wrap = document.createElement('div');
+  wrap.className = 'entry';
+  wrap.id = id;
+  wrap.innerHTML = `
+    <div class="entry-head">
+      <span class="tag">Entry ${entryCounter}</span>
+      <span class="eq-id" data-role="eqlabel">${prefill ? prefill.equipmentId + ' (retest)' : 'New entry'}</span>
+      <button type="button" data-role="remove">Remove</button>
+    </div>
+    <div class="entry-body">
+
+      <label>Equipment ID <span class="req">*</span>
+        <span class="hint">E.g. G1 interlock one, E1 bottom isolator</span>
+      </label>
+      <input type="text" data-field="equipmentId" value="${prefill ? prefill.equipmentId : ''}">
+      <div class="error-msg">Equipment ID is required</div>
+
+      <label>Type <span class="req">*</span></label>
+      <select data-field="type">
+        <option value="" ${!prefill ? 'disabled selected' : ''}>Select type</option>
+        <option ${prefill && prefill.type === 'Isolator' ? 'selected' : ''}>Isolator</option>
+        <option ${prefill && prefill.type === 'Interlock' ? 'selected' : ''}>Interlock</option>
+        <option ${prefill && prefill.type === 'E-Stop button' ? 'selected' : ''}>E-Stop button</option>
+        <option ${prefill && prefill.type === 'Other' ? 'selected' : ''}>Other</option>
+      </select>
+      <div class="error-msg">Type is required</div>
+
+      <label>Route <span class="req">*</span>
+        <span class="hint">E.g. Press line 1, Grinder 1 discharge, Mixing shed</span>
+      </label>
+      <input type="text" data-field="route" value="${prefill ? prefill.route : ''}">
+      <div class="error-msg">Route is required</div>
+
+      <label>Operation of device <span class="req">*</span>
+        <span class="hint">E.g. Isolator isolates motor, Interlock switches associated safety relay</span>
+      </label>
+      <div class="radio-row" data-radio="opDevice">
+        <div class="radio-opt" data-value="Pass"><input type="radio">Pass</div>
+        <div class="radio-opt" data-value="Fail"><input type="radio">Fail</div>
+      </div>
+      <div class="error-msg" data-error-for="opDevice">Required</div>
+
+      <label>Operation of related controls <span class="req">*</span>
+        <span class="hint">Do associated control circuits operate — e.g. feed route stops, E-stop relay requires resetting</span>
+      </label>
+      <div class="radio-row" data-radio="opControls">
+        <div class="radio-opt" data-value="Pass"><input type="radio">Pass</div>
+        <div class="radio-opt" data-value="Fail"><input type="radio">Fail</div>
+      </div>
+      <div class="error-msg" data-error-for="opControls">Required</div>
+
+      <label>Further action required</label>
+      <select data-field="action">
+        <option value="No" selected>No</option>
+        <option value="Requires Replacement">Requires Replacement</option>
+        <option value="Requires Remedial Works">Requires Remedial Works</option>
+      </select>
+
+      <label>Details <span class="req">*</span>
+        <span class="hint">E.g. 32a 3phase Eaton rotary isolator or Guardmaster Trojan 5</span>
+      </label>
+      <textarea data-field="details"></textarea>
+      <div class="error-msg">Details is required</div>
+
+      <label>Part number <span class="req">*</span></label>
+      <input type="text" data-field="partNumber" value="${prefill ? prefill.partNumber : ''}">
+      <div class="error-msg">Part number is required</div>
+
+      <label>Notes</label>
+      <textarea data-field="notes"></textarea>
+
+      <label>Photo <span class="hint">Optional — keep file size small, large photos may fail to sync</span></label>
+      <input type="file" accept="image/*" capture="environment" data-field="photo">
+    </div>
+  `;
+
+  document.getElementById('entries').appendChild(wrap);
+  document.getElementById('emptyNote').style.display = 'none';
+
+  wrap.querySelector('[data-role="remove"]').addEventListener('click', () => {
+    wrap.remove();
+    delete entries[id];
+    updateCount();
+    if (Object.keys(entries).length === 0) document.getElementById('emptyNote').style.display = 'block';
+  });
+
+  wrap.querySelector('[data-field="equipmentId"]').addEventListener('input', (e) => {
+    wrap.querySelector('[data-role="eqlabel"]').textContent = e.target.value || 'New entry';
+  });
+
+  wrap.querySelectorAll('[data-radio]').forEach(group => {
+    group.querySelectorAll('.radio-opt').forEach(opt => {
+      opt.addEventListener('click', () => {
+        group.querySelectorAll('.radio-opt').forEach(o => o.classList.remove('pass-sel','fail-sel'));
+        const val = opt.getAttribute('data-value');
+        opt.classList.add(val === 'Pass' ? 'pass-sel' : 'fail-sel');
+        group.setAttribute('data-value-selected', val);
+      });
+    });
+  });
+
+  wrap.querySelector('[data-field="photo"]').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { entries[id].photoBase64 = reader.result.split(',')[1]; entries[id].photoName = file.name; };
+    reader.readAsDataURL(file);
+  });
+
+  updateCount();
+}
+
+document.getElementById('addEntryBtn').addEventListener('click', () => addEntry());
+
+function updateCount() {
+  const n = document.querySelectorAll('.entry').length;
+  document.getElementById('entryCount').textContent = `${n} ${n === 1 ? 'entry' : 'entries'} ready to submit`;
+}
+
+// ---- Validation + collection ----
+function collectAndValidate() {
+  let valid = true;
+  const collected = [];
+
+  document.querySelectorAll('.entry').forEach(wrap => {
+    const get = sel => wrap.querySelector(sel);
+    const val = f => get(`[data-field="${f}"]`).value.trim();
+
+    const record = {
+      equipmentId: val('equipmentId'), type: val('type'), route: val('route'),
+      action: val('action'), details: val('details'), partNumber: val('partNumber'), notes: val('notes'),
+    };
+
+    ['opDevice','opControls'].forEach(key => {
+      const group = wrap.querySelector(`[data-radio="${key}"]`);
+      record[key] = group.getAttribute('data-value-selected') || '';
+    });
+
+    ['equipmentId','type','route','details','partNumber'].forEach(f => {
+      const el = get(`[data-field="${f}"]`);
+      const errEl = el.nextElementSibling && el.nextElementSibling.classList.contains('error-msg') ? el.nextElementSibling : null;
+      if (!record[f]) {
+        valid = false; el.classList.add('field-error'); if (errEl) errEl.style.display = 'block';
+      } else {
+        el.classList.remove('field-error'); if (errEl) errEl.style.display = 'none';
+      }
+    });
+
+    ['opDevice','opControls'].forEach(key => {
+      const errEl = wrap.querySelector(`[data-error-for="${key}"]`);
+      if (!record[key]) { valid = false; if (errEl) errEl.style.display = 'block'; }
+      else if (errEl) errEl.style.display = 'none';
+    });
+
+    const id = wrap.id;
+    record.photoBase64 = entries[id] ? (entries[id].photoBase64 || null) : null;
+    if (record.photoBase64 && record.photoBase64.length > 900000) {
+      record.photoBase64 = null; // guard against blowing the 1MB Firestore doc limit
+    }
+    collected.push(record);
+  });
+
+  return { valid, collected };
+}
+
+// ---- Submit ----
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const banner = document.getElementById('banner');
+  banner.style.display = 'none';
+
+  const date = document.getElementById('visitDate').value;
+  const siteSelect = document.getElementById('site');
+  const siteRef = siteSelect.value;
+  const siteName = siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '';
+
+  if (document.querySelectorAll('.entry').length === 0) {
+    banner.className = 'banner bad';
+    banner.textContent = 'Add at least one isolator/interlock entry before submitting.';
+    banner.style.display = 'block';
+    return;
+  }
+
+  const { valid, collected } = collectAndValidate();
+
+  if (!date || !siteRef) {
+    banner.className = 'banner bad';
+    banner.textContent = 'Date and site are both required.';
+    banner.style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
+    return;
+  }
+
+  if (!valid) {
+    banner.className = 'banner bad';
+    banner.textContent = 'Please fill in all required fields, highlighted below.';
+    banner.style.display = 'block';
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+
+  try {
+    // Fire all writes without blocking on server ack — Firestore queues these
+    // locally and syncs automatically once there's signal, which is the point.
+    collected.forEach(rec => {
+      addDoc(collection(db, 'isolatorTests'), {
+        siteRef, siteName, date,
+        engineer: currentUser.displayName || currentUser.email,
+        engineerEmail: currentUser.email,
+        equipmentId: rec.equipmentId, type: rec.type, route: rec.route,
+        opDevice: rec.opDevice, opControls: rec.opControls, action: rec.action,
+        details: rec.details, partNumber: rec.partNumber, notes: rec.notes,
+        photoBase64: rec.photoBase64,
+        createdAt: serverTimestamp()
+      }).catch(() => { /* handled by Firestore's own offline retry */ });
+    });
+
+    banner.className = 'banner ok';
+    banner.textContent = `${collected.length} ${collected.length === 1 ? 'entry' : 'entries'} submitted for ${siteName}${!navigator.onLine ? ' — queued, will sync once you\'re back online' : ''}.`;
+    banner.style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
+
+    document.getElementById('entries').innerHTML = '';
+    document.getElementById('emptyNote').style.display = 'block';
+    addEntry();
+    loadHistory();
+  } catch (e) {
+    banner.className = 'banner bad';
+    banner.textContent = 'Something went wrong — try again.';
+    banner.style.display = 'block';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit';
+  }
+});
+</script>
+
+</body>
+</html>
