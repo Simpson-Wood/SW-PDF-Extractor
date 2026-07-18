@@ -36,6 +36,8 @@
   .card{background:var(--card);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);}
   .section-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px;color:var(--red);margin:0 0 12px;}
   .hint{color:var(--grey);font-size:12.5px;}
+  .postcode-ok{color:var(--pass);}
+  .postcode-bad{color:var(--fail);}
   label{display:block;font-size:12.5px;font-weight:600;margin:0 0 5px;}
   input[type=text], input[type=date]{width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;font-family:'Barlow',sans-serif;}
 
@@ -51,6 +53,9 @@
   .preview-item{opacity:1;transition:opacity .2s;}
   .preview-item.qsed{opacity:.5;}
   .preview-item .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+  .chip-pass{background:#eaf7ee;color:var(--pass);}
+  .chip-fail{background:#fbe9e9;color:var(--fail);}
   .preview-item .detail-line{font-size:12.5px;color:var(--ink);margin-top:3px;}
   .qsed-check{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--grey);white-space:nowrap;}
   .edit-btn{background:none;border:1.5px solid var(--line);color:var(--ink);font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;}
@@ -132,7 +137,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Reports</h1>
-        <p id="versionLabel">v2.0 · Management</p>
+        <p id="versionLabel">v4.0 · Management</p>
       </div>
     </div>
     <div class="who">
@@ -186,8 +191,11 @@
         <p class="section-label">Installation details</p>
         <label>Installation name</label>
         <input type="text" id="metaName">
-        <label>Address</label>
-        <input type="text" id="metaAddress">
+        <label>Address line <span class="hint">(building / street)</span></label>
+        <input type="text" id="metaAddressLine">
+        <label>Postcode</label>
+        <input type="text" id="metaPostcode" style="max-width:160px;text-transform:uppercase;">
+        <p id="postcodeStatus" class="hint" style="margin:-6px 0 12px;"></p>
         <label>Testing started</label>
         <input type="date" id="metaStarted">
         <label>Next retest due <span class="hint">(suggested automatically, editable)</span></label>
@@ -490,6 +498,7 @@ function renderPreview() {
     const isQsed = !!latest.qsed;
 
     if (!isEditing) {
+      const isPass = overallPassOf(latest);
       return `
         <div class="preview-item ${isQsed ? 'qsed' : ''}">
           <div class="top">
@@ -500,6 +509,7 @@ function renderPreview() {
               ${latest.manufacturer || latest.model ? `<div class="detail-line">${[latest.manufacturer, latest.model].filter(Boolean).join(', ')}</div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+              <span class="chip ${isPass ? 'chip-pass' : 'chip-fail'}">${isPass ? 'Pass' : 'Fail'}</span>
               <button type="button" class="edit-btn" data-id="${latest._id}">Edit</button>
               <label class="qsed-check"><input type="checkbox" data-qsed-id="${latest._id}" ${isQsed ? 'checked' : ''}> QSed</label>
             </div>
@@ -659,12 +669,55 @@ function suggestedRetestDue() {
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }
 
+let postcodeArea = '';
+let postcodeCheckTimer = null;
+
+async function checkPostcode() {
+  const input = document.getElementById('metaPostcode');
+  const status = document.getElementById('postcodeStatus');
+  const raw = input.value.trim();
+  if (!raw) { status.textContent = ''; status.className = 'hint'; postcodeArea = ''; return; }
+  status.textContent = 'Checking…'; status.className = 'hint';
+  try {
+    const res = await fetch('https://api.postcodes.io/postcodes/' + encodeURIComponent(raw));
+    const data = await res.json();
+    if (data.status === 200 && data.result) {
+      input.value = data.result.postcode;
+      postcodeArea = [data.result.admin_district, data.result.region].filter(Boolean).join(', ');
+      status.textContent = '✓ ' + postcodeArea;
+      status.className = 'hint postcode-ok';
+    } else {
+      postcodeArea = '';
+      status.textContent = 'Postcode not found — check for typos';
+      status.className = 'hint postcode-bad';
+    }
+  } catch (e) {
+    postcodeArea = '';
+    status.textContent = 'Could not check postcode — no connection';
+    status.className = 'hint postcode-bad';
+  }
+}
+document.getElementById('metaPostcode').addEventListener('blur', checkPostcode);
+document.getElementById('metaPostcode').addEventListener('input', () => {
+  clearTimeout(postcodeCheckTimer);
+  postcodeCheckTimer = setTimeout(checkPostcode, 900);
+});
+
+function fullAddress() {
+  const line = document.getElementById('metaAddressLine').value.trim();
+  const pc = document.getElementById('metaPostcode').value.trim();
+  return [line, pc].filter(Boolean).join(', ');
+}
+
 function renderFront() {
   const siteSelect = document.getElementById('site');
   document.getElementById('metaName').value = siteMeta.name || (siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '');
-  document.getElementById('metaAddress').value = siteMeta.address || '';
+  document.getElementById('metaAddressLine').value = siteMeta.addressLine || '';
+  document.getElementById('metaPostcode').value = siteMeta.postcode || '';
+  document.getElementById('postcodeStatus').textContent = '';
   document.getElementById('metaStarted').value = siteMeta.testingStarted || '';
   document.getElementById('metaDue').value = siteMeta.nextRetestDue || suggestedRetestDue();
+  if (siteMeta.postcode) checkPostcode();
 
   const groups = getReportGroups();
   const anyFail = groups.some(g => g.latest && !overallPassOf(g.latest));
@@ -683,11 +736,13 @@ document.getElementById('saveMetaBtn').addEventListener('click', async () => {
   if (!siteRef) return;
   try {
     await setDoc(doc(db, 'jobs', siteRef), {
-      address: document.getElementById('metaAddress').value.trim(),
+      addressLine: document.getElementById('metaAddressLine').value.trim(),
+      postcode: document.getElementById('metaPostcode').value.trim(),
       testingStarted: document.getElementById('metaStarted').value,
       nextRetestDue: document.getElementById('metaDue').value.trim()
     }, { merge: true });
-    siteMeta.address = document.getElementById('metaAddress').value.trim();
+    siteMeta.addressLine = document.getElementById('metaAddressLine').value.trim();
+    siteMeta.postcode = document.getElementById('metaPostcode').value.trim();
     siteMeta.testingStarted = document.getElementById('metaStarted').value;
     siteMeta.nextRetestDue = document.getElementById('metaDue').value.trim();
     const banner = document.getElementById('banner');
@@ -698,7 +753,21 @@ document.getElementById('saveMetaBtn').addEventListener('click', async () => {
 });
 
 // ---- PDF generation ----
-document.getElementById('generateBtn').addEventListener('click', () => {
+function loadImageAsDataURL(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      resolve({ dataUrl: canvas.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight });
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+document.getElementById('generateBtn').addEventListener('click', async () => {
   const banner = document.getElementById('banner');
   banner.style.display = 'none';
   const siteSelect = document.getElementById('site');
@@ -709,51 +778,99 @@ document.getElementById('generateBtn').addEventListener('click', () => {
   const groups = getReportGroups();
   if (groups.length === 0) { banner.className = 'banner bad'; banner.textContent = 'Nothing to report for this site.'; banner.style.display = 'block'; return; }
 
+  const notQsedCount = groups.filter(g => g.latest && !g.latest.qsed).length;
+  if (notQsedCount > 0) {
+    const proceed = confirm(notQsedCount + ' of ' + groups.length + ' items on the register haven\'t been QSed yet. Generate the report anyway?');
+    if (!proceed) return;
+  }
+
+  const logo = await loadImageAsDataURL('sw-logo.png').catch(() => null);
+  const reportRef = siteRef.toUpperCase() + '-' + new Date().toISOString().slice(0, 10);
+
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const marginX = 36;
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  const marginX = 40;
+  let pageW = pdf.internal.pageSize.getWidth();
+  let pageH = pdf.internal.pageSize.getHeight();
+
+  const RED = [208, 34, 42];
+
+  function sectionBar(y, label, width) {
+    pdf.setFillColor(...RED);
+    pdf.rect(marginX, y, width, 20, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10.5);
+    pdf.text(label.toUpperCase(), marginX + 8, y + 14);
+    return y + 20;
+  }
+
+  function labelValueRow(y, width, label, value, alt) {
+    pdf.setFillColor(alt ? 244 : 250, alt ? 243 : 249, alt ? 240 : 247);
+    pdf.rect(marginX, y, width, 22, 'F');
+    pdf.setDrawColor(225, 223, 218);
+    pdf.rect(marginX, y, width, 22);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5);
+    pdf.setTextColor(90, 90, 90);
+    pdf.text(label, marginX + 8, y + 14);
+    pdf.setFont('helvetica', 'normal'); pdf.setTextColor(26, 26, 26);
+    pdf.text(String(value || '-'), marginX + 160, y + 14);
+    return y + 22;
+  }
 
   // ---- Front page ----
-  pdf.setFillColor(26, 26, 26);
-  pdf.rect(0, 0, pageW, 70, 'F');
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(18);
-  pdf.text('Simpson & Wood', marginX, 32);
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(11);
-  pdf.setTextColor(210, 210, 210);
-  pdf.text('Isolator / Interlock Test Report', marginX, 52);
+  const contentW = pageW - marginX * 2;
 
-  let fy = 110;
+  if (logo) {
+    const logoW = 130;
+    const logoH = logoW * (logo.h / logo.w);
+    pdf.addImage(logo.dataUrl, 'PNG', marginX, 30, logoW, logoH);
+  }
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15);
   pdf.setTextColor(26, 26, 26);
-  const rows = [
+  pdf.text('ISOLATOR / INTERLOCK TEST REPORT', pageW - marginX, 45, { align: 'right' });
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+  pdf.setTextColor(110, 110, 110);
+  pdf.text('Isolator, interlock and e-stop testing record', pageW - marginX, 58, { align: 'right' });
+  pdf.text('Report reference: ' + reportRef, pageW - marginX, 70, { align: 'right' });
+
+  let y = 95;
+  pdf.setDrawColor(220, 220, 220);
+  pdf.line(marginX, y, pageW - marginX, y);
+  y += 22;
+
+  y = sectionBar(y, 'Installation Details', contentW);
+  const metaRows = [
     ['Installation', siteName],
-    ['Address', document.getElementById('metaAddress').value || '-'],
-    ['Testing started', document.getElementById('metaStarted').value || '-'],
+    ['Address', fullAddress()],
+    ['Testing started', document.getElementById('metaStarted').value],
     ['Report generated', new Date().toLocaleDateString('en-GB')],
-    ['Next retest due', document.getElementById('metaDue').value || '-'],
+    ['Next retest due', document.getElementById('metaDue').value],
     ['Generated by', currentUser.displayName || currentUser.email]
   ];
-  rows.forEach(r => {
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(11);
-    pdf.setTextColor(90, 90, 90);
-    pdf.text(r[0], marginX, fy);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(26, 26, 26);
-    pdf.text(r[1], marginX + 160, fy);
-    fy += 20;
-  });
+  metaRows.forEach((r, i) => { y = labelValueRow(y, contentW, r[0], r[1], i % 2 === 1); });
 
+  y += 26;
   const anyFail = groups.some(g => g.latest && !overallPassOf(g.latest));
-  fy += 20;
-  pdf.setFillColor(anyFail ? 250 : 234, anyFail ? 233 : 247, anyFail ? 233 : 238);
-  pdf.rect(marginX, fy, 280, 70, 'F');
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10);
+  y = sectionBar(y, 'Overall Assessment', contentW);
+  const boxH = 60;
+  pdf.setFillColor(anyFail ? 251 : 234, anyFail ? 235 : 247, anyFail ? 235 : 238);
+  pdf.rect(marginX, y, contentW, boxH, 'F');
+  pdf.setDrawColor(225, 223, 218);
+  pdf.rect(marginX, y, contentW, boxH);
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
   pdf.setTextColor(anyFail ? 192 : 31, anyFail ? 39 : 138, anyFail ? 45 : 61);
-  pdf.text('OVERALL ASSESSMENT', marginX + 14, fy + 20);
-  pdf.setFontSize(18);
-  pdf.text(anyFail ? 'Unsatisfactory' : 'Satisfactory', marginX + 14, fy + 45);
+  pdf.text(anyFail ? 'UNSATISFACTORY' : 'SATISFACTORY', marginX + 12, y + 30);
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+  pdf.setTextColor(90, 90, 90);
+  pdf.text(anyFail
+    ? 'One or more items on the register have failed testing and require further action.'
+    : 'No outstanding failures recorded against this site at the time of generation.', marginX + 12, y + 46);
+  y += boxH + 10;
+  if (notQsedCount > 0) {
+    pdf.setFont('helvetica', 'italic'); pdf.setFontSize(8.5);
+    pdf.setTextColor(150, 120, 40);
+    pdf.text(notQsedCount + ' of ' + groups.length + ' items had not been QSed at the time this report was generated.', marginX, y + 10);
+  }
 
   // ---- One landscape table per category, sorted by location ----
   CATEGORY_NAMES.forEach(cat => {
@@ -762,14 +879,12 @@ document.getElementById('generateBtn').addEventListener('click', () => {
     if (rowsForCat.length === 0) return;
     rowsForCat.sort((a, b) => locationOf(a.latest).localeCompare(locationOf(b.latest)) || a.eq.localeCompare(b.eq));
 
-    pdf.addPage();
-    let y = 40;
-    pdf.setFillColor(208, 34, 42);
-    pdf.rect(marginX, y, pageW - marginX * 2, 22, 'F');
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
-    pdf.text(cat, marginX + 8, y + 15);
-    y += 34;
+    pdf.addPage('a4', 'landscape');
+    pageW = pdf.internal.pageSize.getWidth();
+    pageH = pdf.internal.pageSize.getHeight();
+    let ty = 40;
+    ty = sectionBar(ty, cat, pageW - marginX * 2);
+    ty += 12;
 
     const usableW = pageW - marginX * 2;
     const cols = [
@@ -795,26 +910,28 @@ document.getElementById('generateBtn').addEventListener('click', () => {
     cols.forEach(c => {
       if (c.rotated) {
         pdf.setFont('helvetica', 'normal'); pdf.setTextColor(90, 90, 90);
-        pdf.text(c.label, x + 4, y + headerH - 4, { angle: 55 });
+        pdf.text(c.label, x + 4, ty + headerH - 4, { angle: 55 });
       } else {
         pdf.setFont('helvetica', 'bold'); pdf.setTextColor(90, 90, 90);
         const lines = pdf.splitTextToSize(c.label, c.w - 4);
-        pdf.text(lines, x + 3, y + headerH - (lines.length * 9) - 2);
+        pdf.text(lines, x + 3, ty + headerH - (lines.length * 9) - 2);
       }
       x += c.w;
     });
     pdf.setDrawColor(220, 220, 220);
-    pdf.line(marginX, y + headerH, marginX + usableW, y + headerH);
-    y += headerH + 4;
+    pdf.line(marginX, ty + headerH, marginX + usableW, ty + headerH);
+    ty += headerH + 4;
 
     rowsForCat.forEach((g, idx) => {
       const latest = g.latest;
       const rowH = 16;
-      if (y + rowH > pageH - 40) {
-        pdf.addPage();
-        y = 40;
+      if (ty + rowH > pageH - 40) {
+        pdf.addPage('a4', 'landscape');
+        pageW = pdf.internal.pageSize.getWidth();
+        pageH = pdf.internal.pageSize.getHeight();
+        ty = 40;
       }
-      if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, y - 3, usableW, rowH, 'F'); }
+      if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, ty - 3, usableW, rowH, 'F'); }
 
       x = marginX;
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(40, 40, 40);
@@ -825,30 +942,35 @@ document.getElementById('generateBtn').addEventListener('click', () => {
           if (cv === 'Pass') { pdf.setTextColor(31, 138, 61); val = 'P'; }
           else if (cv === 'Fail') { pdf.setTextColor(192, 39, 45); val = 'F'; }
           else val = '-';
-          pdf.text(val, x + c.w / 2 - 2, y + 6);
+          pdf.text(val, x + c.w / 2 - 2, ty + 6);
           pdf.setTextColor(40, 40, 40);
         } else if (c.key === 'location') {
-          pdf.text(String(locationOf(latest) || '-'), x + 3, y + 6);
+          pdf.text(String(locationOf(latest) || '-'), x + 3, ty + 6);
         } else if (c.key === 'equipmentId') {
           pdf.setFont('helvetica', 'bold');
-          pdf.text(pdf.splitTextToSize(g.eq, c.w - 4)[0] || '-', x + 3, y + 6);
+          pdf.text(pdf.splitTextToSize(g.eq, c.w - 4)[0] || '-', x + 3, ty + 6);
           pdf.setFont('helvetica', 'normal');
         } else {
           const raw = latest[c.key] !== undefined && latest[c.key] !== '' ? String(latest[c.key]) : '-';
-          pdf.text(pdf.splitTextToSize(raw, c.w - 4)[0] || '-', x + 3, y + 6);
+          pdf.text(pdf.splitTextToSize(raw, c.w - 4)[0] || '-', x + 3, ty + 6);
         }
         x += c.w;
       });
-      y += rowH;
+      ty += rowH;
     });
   });
 
   const totalPages = pdf.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     pdf.setPage(i);
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    pdf.setDrawColor(230, 230, 230);
+    pdf.line(marginX, ph - 30, pw - marginX, ph - 30);
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5);
     pdf.setTextColor(150, 150, 150);
-    pdf.text('Simpson & Wood · Isolator/Interlock Report v2.0 · ' + new Date().toLocaleString('en-GB') + ' · Page ' + i + ' of ' + totalPages, marginX, pageH - 20);
+    pdf.text('Simpson & Wood · Isolator/Interlock Report · ' + reportRef, marginX, ph - 18);
+    pdf.text('Page ' + i + ' of ' + totalPages, pw - marginX, ph - 18, { align: 'right' });
   }
 
   const filename = 'Isolator-Interlock-Report-' + siteRef + '-' + new Date().toISOString().slice(0,10) + '.pdf';
