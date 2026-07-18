@@ -47,8 +47,8 @@
   select:disabled option:disabled{color:#ccc;}
   .field-error{border-color:var(--red) !important;}
   .error-msg{color:var(--red);font-size:12px;margin:-10px 0 12px;display:none;}
-  .radio-row{display:flex;gap:10px;margin-bottom:10px;}
-  .radio-opt{flex:1;border:1.5px solid var(--line);border-radius:7px;padding:9px;text-align:center;font-weight:600;font-size:13.5px;cursor:pointer;user-select:none;color:var(--grey);}
+  .radio-row{display:flex;gap:6px;margin:0;flex-shrink:0;}
+  .radio-opt{border:1.5px solid var(--line);border-radius:6px;padding:6px 11px;text-align:center;font-weight:600;font-size:12px;cursor:pointer;user-select:none;color:var(--grey);min-width:50px;}
   .radio-opt input{display:none;}
   .radio-opt.pass-sel{border-color:var(--pass);background:#eaf7ee;color:var(--pass);}
   .radio-opt.fail-sel{border-color:var(--fail);background:#fbe9e9;color:var(--fail);}
@@ -56,9 +56,10 @@
   .id-preview{background:#f2f2f2;border:1.5px dashed var(--line);border-radius:7px;padding:10px 11px;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:14px;min-height:20px;}
   .id-preview.pending{color:var(--grey);font-weight:400;font-style:italic;}
 
-  .check-item{border-top:1px solid var(--line);padding-top:10px;margin-top:10px;}
-  .check-item:first-child{border-top:none;margin-top:0;padding-top:0;}
-  .check-item label{font-size:12.5px;}
+  .check-item{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:9px 0;flex-wrap:wrap;}
+  .check-item:first-child{border-top:none;padding-top:0;}
+  .check-item .check-label{flex:1;min-width:160px;font-size:12.5px;font-weight:600;color:var(--ink);}
+  .check-item .error-msg{width:100%;margin:2px 0 0;}
 
   .entry{border:1.5px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;}
   .entry-head{background:var(--ink);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
@@ -105,8 +106,15 @@
   .chip.pass{background:#eaf7ee;color:var(--pass);}
   .chip.fail{background:#fbe9e9;color:var(--fail);}
   .chip.overdue{background:var(--fail);color:#fff;}
-  .reg-item-bottom{display:flex;justify-content:flex-end;margin-top:8px;}
+  .reg-item-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;}
+  .expand-btn{background:none;border:none;color:var(--grey);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0;}
   .retest-btn{background:#fff;border:1.5px solid var(--red);color:var(--red);font-size:12px;font-weight:700;padding:6px 10px;border-radius:6px;cursor:pointer;}
+  .hist-list{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;}
+  .hist-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;}
+  .hist-row:last-child{border-bottom:none;}
+  .hist-date{font-size:12.5px;font-weight:600;display:flex;align-items:center;}
+  .hist-meta{font-size:11px;color:var(--grey);margin-top:1px;}
+  .del-btn{background:none;border:1.5px solid var(--fail);color:var(--fail);font-size:11.5px;font-weight:700;padding:5px 9px;border-radius:6px;cursor:pointer;}
   .history-empty{color:var(--grey);font-size:13px;text-align:center;padding:16px 0;}
   .loading-note{color:var(--grey);font-size:13px;text-align:center;padding:6px 0;}
 </style>
@@ -127,7 +135,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Test</h1>
-        <p id="versionLabel">v5.0</p>
+        <p id="versionLabel">v8.0</p>
       </div>
     </div>
     <div class="who">
@@ -194,6 +202,8 @@
 <datalist id="dl-physicalLocation"></datalist>
 <datalist id="dl-relayLocation"></datalist>
 <datalist id="dl-equipmentAffected"></datalist>
+<datalist id="dl-manufacturer"></datalist>
+<datalist id="dl-model"></datalist>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -202,11 +212,11 @@ import {
   onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  initializeFirestore, persistentLocalCache, collection, addDoc, getDocs,
+  initializeFirestore, persistentLocalCache, collection, addDoc, getDocs, doc, updateDoc,
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const VERSION = "v5.0";
+const VERSION = "v8.0";
 document.getElementById('versionLabel').textContent = VERSION + ' · Log one or more tests for this visit';
 console.log('Isolator/Interlock tool', VERSION);
 
@@ -234,7 +244,7 @@ const CATEGORIES = {
     fields: [
       { key: 'panelName', label: 'Panel Name', hint: 'E.g. Press line 1 routing', dl: 'panelName' }
     ],
-    idFields: ['panelName'], idSuffix: 'Isolator',
+    idFields: ['panelName'], idSuffix: 'Isolator', hasIsolatorSpecs: true,
     checks: [
       { key: 'operation', label: 'Operation' },
       { key: 'guards', label: 'All guards & shields in place' },
@@ -249,7 +259,7 @@ const CATEGORIES = {
       { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
       { key: 'equipmentName', label: 'Equipment Name', hint: 'E.g. Press 1 press motor 1, E1, C16', dl: 'equipmentName' }
     ],
-    idFields: ['millLocation', 'equipmentName'], idSuffix: 'Isolator',
+    idFields: ['millLocation', 'equipmentName'], idSuffix: 'Isolator', hasIsolatorSpecs: true,
     checks: [
       { key: 'operation', label: 'Operation' },
       { key: 'handleCondition', label: 'Handle in good condition' },
@@ -307,12 +317,39 @@ const CATEGORIES = {
 };
 const CATEGORY_NAMES = Object.keys(CATEGORIES);
 const DUE_DAYS = 365;
+const AUX_OPTIONS = ['No', '1 N/O', '1 N/O & 1 N/C', '1 N/C'];
 
 let currentUser = null;
 let entryCounter = 0;
 const entries = {}; // id -> {photoBase64, photoName}
 let siteHistoryCache = [];
 let activeRegTab = 'All';
+let expandedEquip = new Set();
+
+async function flagForDeletion(docId) {
+  if (!confirm('Flag this test as incorrect / for deletion? It stays on record but is hidden from the active register until a manager confirms removal.')) return;
+  try {
+    await updateDoc(doc(db, 'isolatorTests', docId), {
+      deletedFlag: true,
+      deletedBy: currentUser.displayName || currentUser.email,
+      deletedAt: serverTimestamp()
+    });
+    await loadSiteData();
+    renderRegister();
+  } catch (e) {
+    alert('Could not flag — ' + (e.message || e.code || 'unknown error'));
+  }
+}
+
+async function unflagDeletion(docId) {
+  try {
+    await updateDoc(doc(db, 'isolatorTests', docId), { deletedFlag: false });
+    await loadSiteData();
+    renderRegister();
+  } catch (e) {
+    alert('Could not restore — ' + (e.message || e.code || 'unknown error'));
+  }
+}
 
 // ---- Sign-in ----
 function describeAuthError(err) {
@@ -414,7 +451,7 @@ async function loadSiteData() {
       orderBy('date')
     );
     const snap = await getDocs(q);
-    snap.forEach(docSnap => siteHistoryCache.push(docSnap.data()));
+    snap.forEach(docSnap => siteHistoryCache.push({ _id: docSnap.id, ...docSnap.data() }));
     rebuildSuggestions();
   } catch (e) {
     console.error('Site data load failed:', e);
@@ -424,14 +461,22 @@ async function loadSiteData() {
 }
 
 // Starting suggestions so common values show up even with zero history yet.
-// Extend this per-site over time as real location/panel names become known.
 const SEED_SUGGESTIONS = {
-  millLocation: ['Press line 1', 'Press line 2', 'Press line 3', 'Press line 4']
+  millLocation: [
+    'Press line 1', 'Press line 2', 'Press line 3', 'Press line 4',
+    'Intake', 'Front outloading', 'Rear outloading', 'Blending', 'Routing', 'Mixing',
+    'Mixer 1', 'Mixer 2', 'Packing',
+    'Weigher 1', 'Weigher 2', 'Weigher 3', 'Weigher 4', 'Weigher 5',
+    'Weigher 6', 'Weigher 7', 'Weigher 8', 'Weigher 9',
+    'Grinder 1', 'Grinder 2', 'Grinder 3',
+    'Mixing shed mixer 1', 'Mixing shed mixer 2'
+  ]
 };
 
 function rebuildSuggestions() {
   const pools = { panelName:new Set(), millLocation:new Set(), equipmentName:new Set(),
-    physicalLocation:new Set(), relayLocation:new Set(), equipmentAffected:new Set() };
+    physicalLocation:new Set(), relayLocation:new Set(), equipmentAffected:new Set(),
+    manufacturer:new Set(), model:new Set() };
   Object.keys(SEED_SUGGESTIONS).forEach(k => { SEED_SUGGESTIONS[k].forEach(v => pools[k].add(v)); });
   siteHistoryCache.forEach(d => {
     Object.keys(pools).forEach(k => { if (d[k]) pools[k].add(d[k]); });
@@ -478,10 +523,10 @@ function renderRegister() {
 
   let groups = Object.keys(byEquip).map(eq => {
     const hist = byEquip[eq];
-    const latest = hist[hist.length - 1];
-    return { eq, hist, latest };
-  });
-  if (activeRegTab !== 'All') groups = groups.filter(g => g.latest.category === activeRegTab);
+    const active = hist.filter(h => !h.deletedFlag);
+    return { eq, hist, active, latest: active.length ? active[active.length - 1] : null };
+  }).filter(g => g.latest || g.hist.some(h => h.deletedFlag));
+  if (activeRegTab !== 'All') groups = groups.filter(g => (g.latest ? g.latest.category : g.hist[g.hist.length-1].category) === activeRegTab);
   groups.sort((a, b) => a.eq.localeCompare(b.eq));
 
   if (groups.length === 0) { list.innerHTML = '<div class="history-empty">Nothing in this category yet.</div>'; return; }
@@ -489,6 +534,49 @@ function renderRegister() {
   const today = new Date();
   list.innerHTML = groups.map(g => {
     const latest = g.latest;
+    const isExpanded = expandedEquip.has(g.eq);
+    const displayCat = latest ? latest.category : g.hist[g.hist.length - 1].category;
+    const historyRows = [...g.hist].reverse().map(h => {
+      if (h.deletedFlag) {
+        return `
+          <div class="hist-row">
+            <div>
+              <div class="hist-date" style="text-decoration:line-through;color:var(--grey);">${h.date || '—'}</div>
+              <div class="hist-meta">Flagged for deletion by ${h.deletedBy || '—'} · pending manager review</div>
+            </div>
+            <button type="button" class="del-btn" data-doc-id="${h._id}" data-action="restore">Restore</button>
+          </div>
+        `;
+      }
+      const hPass = overallPassOf(h);
+      return `
+        <div class="hist-row">
+          <div>
+            <div class="hist-date">${h.date || '—'} <span class="chip ${hPass ? 'pass' : 'fail'}" style="margin-left:6px;">${hPass ? 'Pass' : 'Fail'}</span></div>
+            <div class="hist-meta">by ${h.engineer || '—'}</div>
+          </div>
+          <button type="button" class="del-btn" data-doc-id="${h._id}" data-action="flag">Flag for deletion</button>
+        </div>
+      `;
+    }).join('');
+
+    if (!latest) {
+      return `
+        <div class="reg-item">
+          <div class="reg-item-top">
+            <div><div class="cat">${displayCat || 'Uncategorised'}</div><div class="eq">${g.eq}</div></div>
+            <span class="chip" style="background:#eee;color:var(--grey);">Pending review</span>
+          </div>
+          <div class="meta">All tests for this item are flagged for deletion — awaiting manager review.</div>
+          <div class="reg-item-bottom">
+            <button type="button" class="expand-btn" data-eq="${g.eq}">${isExpanded ? 'Hide history' : 'View history'} (${g.hist.length})</button>
+            <span></span>
+          </div>
+          ${isExpanded ? `<div class="hist-list">${historyRows}</div>` : ''}
+        </div>
+      `;
+    }
+
     const overallPass = overallPassOf(latest);
     let daysSince = null, overdue = false;
     if (latest.date) {
@@ -510,19 +598,36 @@ function renderRegister() {
         <div class="meta ${overdue ? 'overdue-text' : ''}">
           Last tested ${latest.date || '—'} by ${latest.engineer || '—'}
           ${daysSince !== null ? ` · ${daysSince} days ago` : ''}
-          · ${g.hist.length} test${g.hist.length > 1 ? 's' : ''} on record
         </div>
         <div class="reg-item-bottom">
+          <button type="button" class="expand-btn" data-eq="${g.eq}">${isExpanded ? 'Hide history' : 'View history'} (${g.hist.length})</button>
           <button type="button" class="retest-btn" data-eq="${g.eq}">Retest</button>
         </div>
+        ${isExpanded ? `<div class="hist-list">${historyRows}</div>` : ''}
       </div>
     `;
   }).join('');
 
+  list.querySelectorAll('.expand-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const eq = btn.dataset.eq;
+      if (expandedEquip.has(eq)) expandedEquip.delete(eq); else expandedEquip.add(eq);
+      renderRegister();
+    });
+  });
+  list.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.action === 'restore') unflagDeletion(btn.dataset.docId);
+      else flagForDeletion(btn.dataset.docId);
+    });
+  });
+
   list.querySelectorAll('.retest-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const eq = btn.dataset.eq;
-      const latest = byEquip[eq][byEquip[eq].length - 1];
+      const group = groups.find(g => g.eq === eq);
+      const latest = group ? group.latest : null;
+      if (!latest) return;
       addEntry(latest);
       switchTab('log');
       window.scrollTo({ top: document.getElementById('entries').offsetTop - 20, behavior: 'smooth' });
@@ -561,8 +666,9 @@ function refreshIdPreview(wrap) {
 function renderCategoryFields(wrap, category, prefill) {
   const fieldsContainer = wrap.querySelector('[data-role="catFields"]');
   const checksContainer = wrap.querySelector('[data-role="catChecks"]');
+  const specsContainer = wrap.querySelector('[data-role="isolatorSpecs"]');
   const def = CATEGORIES[category];
-  if (!def) { fieldsContainer.innerHTML = ''; checksContainer.innerHTML = ''; refreshIdPreview(wrap); return; }
+  if (!def) { fieldsContainer.innerHTML = ''; checksContainer.innerHTML = ''; specsContainer.innerHTML = ''; refreshIdPreview(wrap); return; }
 
   fieldsContainer.innerHTML = def.fields.map(f => `
     <label>${f.label} <span class="req">*</span><span class="hint">${f.hint}</span></label>
@@ -574,9 +680,33 @@ function renderCategoryFields(wrap, category, prefill) {
     inp.addEventListener('input', () => refreshIdPreview(wrap));
   });
 
+  if (def.hasIsolatorSpecs) {
+    specsContainer.innerHTML = `
+      <label>Current rating <span class="req">*</span><span class="hint">E.g. 32A</span></label>
+      <input type="text" data-field="currentRating" value="${prefill && prefill.currentRating ? prefill.currentRating : ''}">
+      <div class="error-msg">Current rating is required</div>
+
+      <label>Number of poles <span class="req">*</span></label>
+      <select data-field="poles">
+        <option value="" disabled ${!prefill || !prefill.poles ? 'selected' : ''}>Select</option>
+        ${[1,2,3,4,5,6,7,8].map(n => `<option ${prefill && String(prefill.poles) === String(n) ? 'selected' : ''}>${n}</option>`).join('')}
+      </select>
+      <div class="error-msg">Number of poles is required</div>
+
+      <label>Auxiliary <span class="req">*</span></label>
+      <select data-field="auxiliary">
+        <option value="" disabled ${!prefill || !prefill.auxiliary ? 'selected' : ''}>Select</option>
+        ${AUX_OPTIONS.map(a => `<option ${prefill && prefill.auxiliary === a ? 'selected' : ''}>${a}</option>`).join('')}
+      </select>
+      <div class="error-msg">Auxiliary is required</div>
+    `;
+  } else {
+    specsContainer.innerHTML = '';
+  }
+
   checksContainer.innerHTML = def.checks.map(c => `
     <div class="check-item">
-      <label>${c.label} <span class="req">*</span></label>
+      <div class="check-label">${c.label} <span class="req">*</span></div>
       <div class="radio-row" data-check="${c.key}">
         <div class="radio-opt" data-value="Pass"><input type="radio">Pass</div>
         <div class="radio-opt" data-value="Fail"><input type="radio">Fail</div>
@@ -639,6 +769,8 @@ function addEntry(prefill) {
       <label>Equipment ID <span class="hint" style="display:inline;">(generated automatically)</span></label>
       <div class="id-preview pending" data-role="idPreview">Select a category and fill in the fields above</div>
 
+      <div data-role="isolatorSpecs"></div>
+
       <div data-role="catChecks"></div>
 
       <label style="margin-top:14px;">Further action required <span class="req">*</span></label>
@@ -651,16 +783,20 @@ function addEntry(prefill) {
       <div class="hint" data-role="actionHint" style="display:none;margin:-10px 0 12px;color:var(--fail);">A Fail above means this can't be left as "No"</div>
       <div class="error-msg" data-error-for="action">Required — and can't be "No" if any check above failed</div>
 
-      <label>Details <span class="req">*</span><span class="hint">E.g. 32a 3phase Eaton rotary isolator or Guardmaster Trojan 5</span></label>
-      <textarea data-field="details"></textarea>
-      <div class="error-msg">Details is required</div>
+      <label>Manufacturer <span class="req">*</span><span class="hint">E.g. Eaton, Guardmaster, Schneider</span></label>
+      <input type="text" data-field="manufacturer" list="dl-manufacturer" value="${prefill && prefill.manufacturer ? prefill.manufacturer : ''}">
+      <div class="error-msg">Manufacturer is required</div>
+
+      <label>Model <span class="req">*</span><span class="hint">E.g. rotary isolator, Trojan 5</span></label>
+      <input type="text" data-field="model" list="dl-model" value="${prefill && prefill.model ? prefill.model : ''}">
+      <div class="error-msg">Model is required</div>
 
       <label>Part number <span class="req">*</span></label>
       <input type="text" data-field="partNumber" value="${prefill && prefill.partNumber ? prefill.partNumber : ''}">
       <div class="error-msg">Part number is required</div>
 
-      <label>Notes</label>
-      <textarea data-field="notes"></textarea>
+      <label>Observations</label>
+      <textarea data-field="observations"></textarea>
 
       <label>General photo of equipment <span class="req">*</span></label>
       <input type="file" accept="image/*" capture="environment" data-field="photo">
@@ -728,11 +864,22 @@ function collectAndValidate() {
 
     const category = val('category');
     const def = CATEGORIES[category];
-    const record = { category, action: val('action'), details: val('details'), partNumber: val('partNumber'), notes: val('notes'), checks: {} };
+    const record = { category, action: val('action'), manufacturer: val('manufacturer'), model: val('model'),
+      partNumber: val('partNumber'), observations: val('observations'), checks: {} };
 
     mark(get('[data-field="category"]'), !!category);
-    mark(get('[data-field="details"]'), !!record.details);
+    mark(get('[data-field="manufacturer"]'), !!record.manufacturer);
+    mark(get('[data-field="model"]'), !!record.model);
     mark(get('[data-field="partNumber"]'), !!record.partNumber);
+
+    if (def && def.hasIsolatorSpecs) {
+      record.currentRating = val('currentRating');
+      record.poles = val('poles');
+      record.auxiliary = val('auxiliary');
+      mark(get('[data-field="currentRating"]'), !!record.currentRating);
+      mark(get('[data-field="poles"]'), !!record.poles);
+      mark(get('[data-field="auxiliary"]'), !!record.auxiliary);
+    }
 
     const fieldValues = {};
     (def ? def.fields : []).forEach(f => {
