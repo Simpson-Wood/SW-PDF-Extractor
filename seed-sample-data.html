@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seed Sample Data — Isolator/Interlock</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Barlow',sans-serif;background:#f6f5f4;color:#1a1a1a;max-width:480px;margin:60px auto;padding:0 20px;}
+  h1{font-size:18px;}
+  select,button{width:100%;padding:11px;font-size:15px;border-radius:7px;border:1.5px solid #ddd;margin-bottom:12px;font-family:'Barlow',sans-serif;}
+  button{background:#D0222A;color:#fff;border:none;font-weight:700;cursor:pointer;}
+  button:disabled{background:#e0a8ab;}
+  .ms-btn{background:#1a1a1a;}
+  #status{font-size:13px;color:#555;white-space:pre-line;margin-top:14px;}
+  #signinScreen{display:block;}
+  #appRoot{display:none;}
+  p.note{font-size:12px;color:#888;}
+</style>
+</head>
+<body>
+
+<div id="signinScreen">
+  <h1>Seed sample data</h1>
+  <p class="note">One-off testing tool. Not meant to be linked to from anywhere permanent.</p>
+  <button class="ms-btn" id="msSignInBtn">Sign in with Microsoft</button>
+  <div id="status"></div>
+</div>
+
+<div id="appRoot">
+  <h1>Seed sample data</h1>
+  <select id="site"><option value="" disabled selected>Loading sites…</option></select>
+  <button id="seedBtn">Add sample data to this site</button>
+  <div id="status"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { initializeFirestore, persistentLocalCache, collection, addDoc, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB5foKhRfIMG91bD5QyT7hHd1XBbeQGucw",
+  authDomain: "simpson-wood-engineer-app.firebaseapp.com",
+  projectId: "simpson-wood-engineer-app",
+  storageBucket: "simpson-wood-engineer-app.firebasestorage.app",
+  messagingSenderId: "201961281346",
+  appId: "1:201961281346:web:3c7386b73b41ce9df35adb"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+const msProvider = new OAuthProvider('microsoft.com');
+msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' });
+
+let currentUser = null;
+
+document.getElementById('msSignInBtn').addEventListener('click', () => {
+  signInWithPopup(auth, msProvider).catch(err => {
+    if (err.code === 'auth/popup-blocked') signInWithRedirect(auth, msProvider);
+    else document.querySelector('#signinScreen #status').textContent = 'Sign-in failed — ' + (err.code || err.message);
+  });
+});
+getRedirectResult(auth).catch(() => {});
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  document.getElementById('signinScreen').style.display = user ? 'none' : 'block';
+  document.getElementById('appRoot').style.display = user ? 'block' : 'none';
+  if (user) loadSites();
+});
+
+async function loadSites() {
+  const sel = document.getElementById('site');
+  const q = query(collection(db, 'jobs'), where('status', '==', 'Active'));
+  const snap = await getDocs(q);
+  sel.innerHTML = '<option value="" disabled selected>Select site</option>';
+  snap.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id; opt.textContent = d.data().name || d.id;
+    sel.appendChild(opt);
+  });
+  if (snap.empty) sel.innerHTML = '<option value="">No active sites — add one in Firestore first</option>';
+}
+
+function daysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+function sample(siteRef, siteName) {
+  const engineer = currentUser.displayName || currentUser.email;
+  const base = { siteRef, siteName, engineer, engineerEmail: currentUser.email, createdAt: serverTimestamp() };
+  return [
+    { ...base, date: daysAgo(20), category: 'Motor Isolator', equipmentId: 'Press line 1 C12 Isolator',
+      millLocation: 'Press line 1', equipmentName: 'C12', manufacturer: 'Eaton', model: 'Rotary isolator',
+      currentRating: '32A', poles: '3', auxiliary: '1 N/O & 1 N/C', partNumber: 'EA-P1-C12',
+      checks: { operation:'Pass', handleCondition:'Pass', interlock:'Pass', heat:'Pass', enclosure:'Pass', auxContacts:'Pass', labelled:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
+      action: 'No', observations: '', qsed: false },
+
+    { ...base, date: daysAgo(5), category: 'E-Stop', equipmentId: 'Press line 1 Press panel E-Stop',
+      millLocation: 'Press line 1', physicalLocation: 'Press panel', relayLocation: 'Press line 1 press panel', equipmentAffected: 'Press only',
+      manufacturer: 'Guardmaster', model: 'XCR', partNumber: 'GM-XCR-04',
+      checks: { buttonOperation:'Pass', shroudLabel:'Pass', terminalBlocks:'Pass', relayOperates:'Pass', channelsDisconnect:'Pass', machineryStops:'Pass', resetOperational:'Pass', restartWhilePressed:'Pass', connectionsSecure:'Fail', cablesGlandsWiring:'Pass' },
+      action: 'Requires Remedial Works', observations: 'Terminal slightly loose, needs re-tightening', qsed: false },
+
+    { ...base, date: daysAgo(100), category: 'Panel Isolator', equipmentId: 'Blending routing Isolator',
+      panelName: 'Blending routing', manufacturer: 'Schneider', model: 'Panel isolator switch',
+      currentRating: '63A', poles: '4', auxiliary: 'No', partNumber: 'SC-BR-63',
+      checks: { operation:'Pass', guards:'Pass', handle:'Pass', interlock:'Pass', heat:'Pass', connectionsSecure:'Pass' },
+      action: 'No', observations: '', qsed: true },
+
+    { ...base, date: daysAgo(400), category: 'Safety Interlock', equipmentId: 'Blending conditioner 1 door Interlock',
+      millLocation: 'Blending', physicalLocation: 'Conditioner 1 door', equipmentAffected: 'Conditioner 1',
+      manufacturer: 'Guardmaster', model: 'Trojan 5', partNumber: 'GM-T5-11',
+      checks: { mounted:'Pass', channelsDisconnect:'Pass', machineryStops:'Pass', resetOperational:'Pass', restartWhileOpen:'Pass', lockEngaged:'Pass', cantOpenUntilStopped:'Pass', latchCondition:'Pass', tamperInspection:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
+      action: 'No', observations: 'Overdue for retest', qsed: false },
+
+    { ...base, date: daysAgo(10), category: 'Motor Isolator', equipmentId: 'Grinder 1 G1 Isolator',
+      millLocation: 'Grinder 1', equipmentName: 'G1', manufacturer: 'Eaton', model: 'Rotary isolator',
+      currentRating: '16A', poles: '3', auxiliary: 'No', partNumber: 'EA-G1-16',
+      checks: { operation:'Pass', handleCondition:'Pass', interlock:'Pass', heat:'Pass', enclosure:'Pass', auxContacts:'Pass', labelled:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
+      action: 'No', observations: '', qsed: false },
+
+    { ...base, date: daysAgo(2), category: 'E-Stop', equipmentId: 'Weigher 3 Weigher 3 panel E-Stop',
+      millLocation: 'Weigher 3', physicalLocation: 'Weigher 3 panel', relayLocation: 'Weigher 3 panel', equipmentAffected: 'Weigher 3 discharge',
+      manufacturer: 'Guardmaster', model: 'XCR', partNumber: 'GM-XCR-07',
+      checks: { buttonOperation:'Pass', shroudLabel:'Pass', terminalBlocks:'Pass', relayOperates:'Pass', channelsDisconnect:'Pass', machineryStops:'Pass', resetOperational:'Pass', restartWhilePressed:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
+      action: 'No', observations: '', qsed: false },
+
+    { ...base, date: daysAgo(30), category: 'Motor Isolator', equipmentId: 'Intake M1 Isolator',
+      millLocation: 'Intake', equipmentName: 'M1', manufacturer: 'Eaton', model: 'Rotary isolator',
+      currentRating: '25A', poles: '3', auxiliary: '1 N/O', partNumber: 'EA-IN-25',
+      checks: { operation:'Pass', handleCondition:'Pass', interlock:'Pass', heat:'Pass', enclosure:'Pass', auxContacts:'Pass', labelled:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
+      action: 'No', observations: 'Duplicate entry logged by mistake', qsed: false,
+      deletedFlag: true, deletedBy: engineer, deletedAt: serverTimestamp() }
+  ];
+}
+
+document.getElementById('seedBtn').addEventListener('click', async () => {
+  const sel = document.getElementById('site');
+  const status = document.getElementById('appRoot').querySelector('#status');
+  const siteRef = sel.value;
+  const siteName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+  if (!siteRef) { status.textContent = 'Select a site first.'; return; }
+
+  const btn = document.getElementById('seedBtn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  status.textContent = '';
+
+  const records = sample(siteRef, siteName);
+  let done = 0;
+  for (const rec of records) {
+    try {
+      await addDoc(collection(db, 'isolatorTests'), rec);
+      done++;
+      status.textContent = `Added ${done}/${records.length}…`;
+    } catch (e) {
+      status.textContent = `Failed on record ${done + 1}: ` + (e.message || e.code);
+      btn.disabled = false; btn.textContent = 'Add sample data to this site';
+      return;
+    }
+  }
+  status.textContent = `Done — ${done} sample tests added to ${siteName}. Includes 1 overdue item, 1 QSed item, and 1 flagged-for-deletion item, across all 4 categories.`;
+  btn.disabled = false; btn.textContent = 'Add sample data to this site';
+});
+</script>
+
+</body>
+</html>
