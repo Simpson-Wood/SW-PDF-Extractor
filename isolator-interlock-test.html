@@ -135,7 +135,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Test</h1>
-        <p id="versionLabel">v8.0</p>
+        <p id="versionLabel">v9.0</p>
       </div>
     </div>
     <div class="who">
@@ -216,7 +216,7 @@ import {
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const VERSION = "v8.0";
+const VERSION = "v9.0";
 document.getElementById('versionLabel').textContent = VERSION + ' · Log one or more tests for this visit';
 console.log('Isolator/Interlock tool', VERSION);
 
@@ -234,6 +234,30 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' });
+
+// Power Automate flow that just sends an email — fires only when a submission
+// genuinely fails while online, not for normal offline queuing (which resolves
+// on its own once Firestore reconnects). Replace once the flow is built.
+const ALERT_FLOW_URL = "REPLACE_WITH_ALERT_FLOW_URL";
+
+function reportSubmissionFailure(err, context) {
+  console.error('Submission failed:', err, context);
+  if (!navigator.onLine) return; // offline write, still queued - not a real failure yet
+  if (ALERT_FLOW_URL.startsWith("REPLACE")) return;
+  fetch(ALERT_FLOW_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tool: 'isolator-interlock-test',
+      errorCode: err.code || '',
+      errorMessage: err.message || String(err),
+      site: context.siteName || '',
+      engineer: context.engineer || '',
+      equipmentId: context.equipmentId || '',
+      timestamp: new Date().toISOString()
+    })
+  }).catch(() => {}); // if the alert itself fails, nothing more we can do client-side
+}
 
 // ---------------------------------------------------------------
 // Category definitions: descriptive fields (feed the auto-ID and
@@ -316,6 +340,42 @@ const CATEGORIES = {
   }
 };
 const CATEGORY_NAMES = Object.keys(CATEGORIES);
+const PHOTO_TARGET_BYTES = 200000; // ~200KB per photo after compression
+
+function compressImage(file, targetBytes) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let maxDim = 1280;
+      let quality = 0.75;
+
+      function render() {
+        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        return canvas.toDataURL('image/jpeg', quality);
+      }
+
+      let dataUrl = render();
+      let attempts = 0;
+      // Roughly reverse the base64 overhead (x0.75) to estimate real byte size,
+      // shrinking quality then dimensions in steps, capped so it can't loop forever.
+      while (dataUrl.length * 0.75 > targetBytes && attempts < 6) {
+        if (quality > 0.4) quality -= 0.15; else maxDim = Math.round(maxDim * 0.8);
+        dataUrl = render();
+        attempts++;
+      }
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image')); };
+    img.src = url;
+  });
+}
 const DUE_DAYS = 365;
 const AUX_OPTIONS = ['No', '1 N/O', '1 N/O & 1 N/C', '1 N/C'];
 
@@ -822,20 +882,28 @@ function addEntry(prefill) {
     renderCategoryFields(wrap, e.target.value);
   });
 
-  wrap.querySelector('[data-field="photo"]').addEventListener('change', (e) => {
+  wrap.querySelector('[data-field="photo"]').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { entries[id].photoBase64 = reader.result.split(',')[1]; entries[id].photoName = file.name; };
-    reader.readAsDataURL(file);
+    const statusEl = wrap.querySelector('[data-error-for="photo"]');
+    try {
+      entries[id].photoBase64 = await compressImage(file, PHOTO_TARGET_BYTES);
+      entries[id].photoName = file.name;
+    } catch (err) {
+      if (statusEl) { statusEl.textContent = 'Could not process that photo — try again.'; statusEl.style.display = 'block'; }
+    }
   });
 
-  wrap.querySelector('[data-field="photoInternals"]').addEventListener('change', (e) => {
+  wrap.querySelector('[data-field="photoInternals"]').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { entries[id].photoInternalsBase64 = reader.result.split(',')[1]; entries[id].photoInternalsName = file.name; };
-    reader.readAsDataURL(file);
+    const statusEl = wrap.querySelector('[data-error-for="photoInternals"]');
+    try {
+      entries[id].photoInternalsBase64 = await compressImage(file, PHOTO_TARGET_BYTES);
+      entries[id].photoInternalsName = file.name;
+    } catch (err) {
+      if (statusEl) { statusEl.textContent = 'Could not process that photo — try again.'; statusEl.style.display = 'block'; }
+    }
   });
 
   updateCount();
@@ -916,9 +984,9 @@ function collectAndValidate() {
     const photoOk = !!record.photoBase64;
     if (photoErrEl) { photoErrEl.textContent = 'A photo is required'; photoErrEl.style.display = photoOk ? 'none' : 'block'; }
     if (!photoOk) valid = false;
-    if (record.photoBase64 && record.photoBase64.length > 900000) {
+    if (record.photoBase64 && record.photoBase64.length > 400000) {
       record.photoBase64 = null;
-      if (photoErrEl) { photoErrEl.textContent = 'Photo file is too large — use a smaller/lower-res photo'; photoErrEl.style.display = 'block'; }
+      if (photoErrEl) { photoErrEl.textContent = 'Photo file is too large even after compression — try a different photo'; photoErrEl.style.display = 'block'; }
       valid = false;
     }
 
@@ -931,9 +999,9 @@ function collectAndValidate() {
     } else if (photoIntErrEl) {
       photoIntErrEl.style.display = 'none';
     }
-    if (record.photoInternalsBase64 && record.photoInternalsBase64.length > 900000) {
+    if (record.photoInternalsBase64 && record.photoInternalsBase64.length > 400000) {
       record.photoInternalsBase64 = null;
-      if (photoIntErrEl) { photoIntErrEl.textContent = 'Photo file is too large — use a smaller/lower-res photo'; photoIntErrEl.style.display = 'block'; }
+      if (photoIntErrEl) { photoIntErrEl.textContent = 'Photo file is too large even after compression — try a different photo'; photoIntErrEl.style.display = 'block'; }
       valid = false;
     }
 
@@ -972,6 +1040,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
 
   try {
+    let failureSeen = false;
     collected.forEach(rec => {
       addDoc(collection(db, 'isolatorTests'), {
         siteRef, siteName, date,
@@ -979,7 +1048,16 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
         engineerEmail: currentUser.email,
         ...rec,
         createdAt: serverTimestamp()
-      }).catch(() => {});
+      }).catch(err => {
+        reportSubmissionFailure(err, { siteName, engineer: currentUser.displayName || currentUser.email, equipmentId: rec.equipmentId });
+        if (navigator.onLine) {
+          failureSeen = true;
+          const banner2 = document.getElementById('banner');
+          banner2.className = 'banner bad';
+          banner2.textContent = `${rec.equipmentId || 'An entry'} failed to save (${err.code || err.message}). The office has been notified — try re-submitting this one.`;
+          banner2.style.display = 'block';
+        }
+      });
     });
 
     banner.className = 'banner ok';

@@ -137,7 +137,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Reports</h1>
-        <p id="versionLabel">v4.0 · Management</p>
+        <p id="versionLabel">v5.0 · Management</p>
       </div>
     </div>
     <div class="who">
@@ -210,6 +210,16 @@
       </div>
     </div>
   </main>
+</div>
+
+<div id="qsedModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:10px;padding:22px;max-width:380px;width:100%;">
+    <p style="font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;font-size:15px;color:var(--red);margin:0 0 10px;">Not everything's been QSed</p>
+    <p id="qsedModalText" style="font-size:13.5px;color:var(--grey);margin:0 0 18px;"></p>
+    <button type="button" id="qsedWithBtn" style="width:100%;padding:11px;margin-bottom:8px;border:1.5px solid var(--line);background:#fff;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;">Generate with non-QSed items included</button>
+    <button type="button" id="qsedWithoutBtn" style="width:100%;padding:11px;margin-bottom:8px;border:none;background:var(--red);color:#fff;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;">Generate without them</button>
+    <button type="button" id="qsedCancelBtn" style="width:100%;padding:11px;border:none;background:none;color:var(--grey);font-weight:600;font-size:13px;cursor:pointer;">Cancel</button>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -767,6 +777,44 @@ function loadImageAsDataURL(url) {
   });
 }
 
+function askQsedChoice(notQsedCount, total) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('qsedModal');
+    document.getElementById('qsedModalText').textContent =
+      notQsedCount + ' of ' + total + ' items on the register haven\'t been QSed yet. How should the report handle them?';
+    modal.style.display = 'flex';
+    const withBtn = document.getElementById('qsedWithBtn');
+    const withoutBtn = document.getElementById('qsedWithoutBtn');
+    const cancelBtn = document.getElementById('qsedCancelBtn');
+    function cleanup(result) {
+      modal.style.display = 'none';
+      withBtn.removeEventListener('click', onWith);
+      withoutBtn.removeEventListener('click', onWithout);
+      cancelBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onWith() { cleanup('with'); }
+    function onWithout() { cleanup('without'); }
+    function onCancel() { cleanup('cancel'); }
+    withBtn.addEventListener('click', onWith);
+    withoutBtn.addEventListener('click', onWithout);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
+
+function drawTick(pdf, cx, cy, size, color) {
+  pdf.setDrawColor(color[0], color[1], color[2]); pdf.setLineWidth(1.2);
+  pdf.line(cx - size * 0.5, cy, cx - size * 0.1, cy + size * 0.4);
+  pdf.line(cx - size * 0.1, cy + size * 0.4, cx + size * 0.5, cy - size * 0.4);
+  pdf.setLineWidth(0.75);
+}
+function drawCross(pdf, cx, cy, size, color) {
+  pdf.setDrawColor(color[0], color[1], color[2]); pdf.setLineWidth(1.2);
+  pdf.line(cx - size * 0.4, cy - size * 0.4, cx + size * 0.4, cy + size * 0.4);
+  pdf.line(cx - size * 0.4, cy + size * 0.4, cx + size * 0.4, cy - size * 0.4);
+  pdf.setLineWidth(0.75);
+}
+
 document.getElementById('generateBtn').addEventListener('click', async () => {
   const banner = document.getElementById('banner');
   banner.style.display = 'none';
@@ -775,13 +823,15 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   const siteName = document.getElementById('metaName').value || (siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '');
   if (!siteRef) { banner.className = 'banner bad'; banner.textContent = 'Select a site first.'; banner.style.display = 'block'; return; }
 
-  const groups = getReportGroups();
+  let groups = getReportGroups();
   if (groups.length === 0) { banner.className = 'banner bad'; banner.textContent = 'Nothing to report for this site.'; banner.style.display = 'block'; return; }
 
   const notQsedCount = groups.filter(g => g.latest && !g.latest.qsed).length;
   if (notQsedCount > 0) {
-    const proceed = confirm(notQsedCount + ' of ' + groups.length + ' items on the register haven\'t been QSed yet. Generate the report anyway?');
-    if (!proceed) return;
+    const choice = await askQsedChoice(notQsedCount, groups.length);
+    if (choice === 'cancel') return;
+    if (choice === 'without') groups = groups.filter(g => g.latest && g.latest.qsed);
+    if (groups.length === 0) { banner.className = 'banner bad'; banner.textContent = 'Nothing left to report once non-QSed items are excluded.'; banner.style.display = 'block'; return; }
   }
 
   const logo = await loadImageAsDataURL('sw-logo.png').catch(() => null);
@@ -794,6 +844,8 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   let pageH = pdf.internal.pageSize.getHeight();
 
   const RED = [208, 34, 42];
+  const PASS_COLOR = [31, 138, 61];
+  const FAIL_COLOR = [192, 39, 45];
 
   function sectionBar(y, label, width) {
     pdf.setFillColor(...RED);
@@ -866,11 +918,6 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     ? 'One or more items on the register have failed testing and require further action.'
     : 'No outstanding failures recorded against this site at the time of generation.', marginX + 12, y + 46);
   y += boxH + 10;
-  if (notQsedCount > 0) {
-    pdf.setFont('helvetica', 'italic'); pdf.setFontSize(8.5);
-    pdf.setTextColor(150, 120, 40);
-    pdf.text(notQsedCount + ' of ' + groups.length + ' items had not been QSed at the time this report was generated.', marginX, y + 10);
-  }
 
   // ---- One landscape table per category, sorted by location ----
   CATEGORY_NAMES.forEach(cat => {
@@ -884,38 +931,64 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     pageH = pdf.internal.pageSize.getHeight();
     let ty = 40;
     ty = sectionBar(ty, cat, pageW - marginX * 2);
-    ty += 12;
-
+    ty += 10;
     const usableW = pageW - marginX * 2;
-    const cols = [
-      { key: 'location', label: 'Location', w: 62 },
-      { key: 'equipmentId', label: 'Equipment ID', w: 110 },
-      { key: 'manufacturer', label: 'Manufacturer', w: 62 }
-    ];
-    if (def.hasIsolatorSpecs) {
-      cols.push({ key: 'currentRating', label: 'Current rating', w: 48 });
-      cols.push({ key: 'poles', label: 'Poles', w: 30 });
-      cols.push({ key: 'auxiliary', label: 'Auxiliary', w: 60 });
-    }
-    const checkColW = 20;
-    def.checks.forEach(c => cols.push({ key: 'check:' + c.key, label: c.label, w: checkColW, rotated: true, check: true }));
-    cols.push({ key: 'model', label: 'Model', w: 65 });
-    const fixedSum = cols.reduce((s, c) => s + c.w, 0);
-    const obsW = Math.max(70, usableW - fixedSum);
-    cols.push({ key: 'observations', label: 'Observations', w: obsW });
 
-    const headerH = 70;
-    let x = marginX;
+    // Columns: location, any other descriptive fields, equipment id, manufacturer,
+    // isolator specs if applicable, coded check columns, model, observations.
+    const cols = [{ key: 'location', label: 'Location' }];
+    (def.fields || []).forEach(f => { if (f.key !== def.locationKey) cols.push({ key: f.key, label: f.label }); });
+    cols.push({ key: 'equipmentId', label: 'Equipment ID', bold: true });
+    cols.push({ key: 'manufacturer', label: 'Manufacturer' });
+    if (def.hasIsolatorSpecs) {
+      cols.push({ key: 'currentRating', label: 'Rating' });
+      cols.push({ key: 'poles', label: 'Poles' });
+      cols.push({ key: 'auxiliary', label: 'Auxiliary' });
+    }
+    const checkCols = def.checks.map((c, i) => ({ key: 'check:' + c.key, label: 'C' + (i + 1), check: true, checkLabel: c.label }));
+    cols.push(...checkCols);
+    cols.push({ key: 'model', label: 'Model' });
+    cols.push({ key: 'observations', label: 'Observations', flex: true });
+
+    function cellValue(latest, eq, c) {
+      if (c.key === 'equipmentId') return eq;
+      if (c.key === 'location') return locationOf(latest) || '-';
+      const v = latest[c.key];
+      return v !== undefined && v !== '' ? String(v) : '-';
+    }
+
+    // Legend for the coded check columns
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5); pdf.setTextColor(110, 110, 110);
+    const legendText = checkCols.map(c => c.label + ' = ' + c.checkLabel).join('   ·   ');
+    const legendLines = pdf.splitTextToSize(legendText, usableW);
+    pdf.text(legendLines, marginX, ty);
+    ty += legendLines.length * 9 + 8;
+
+    // Dynamic column widths based on header + actual content
     pdf.setFontSize(8);
+    let sumFixed = 0;
     cols.forEach(c => {
-      if (c.rotated) {
-        pdf.setFont('helvetica', 'normal'); pdf.setTextColor(90, 90, 90);
-        pdf.text(c.label, x + 4, ty + headerH - 4, { angle: 55 });
-      } else {
-        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(90, 90, 90);
-        const lines = pdf.splitTextToSize(c.label, c.w - 4);
-        pdf.text(lines, x + 3, ty + headerH - (lines.length * 9) - 2);
-      }
+      if (c.flex) return;
+      if (c.check) { c.w = 20; sumFixed += c.w; return; }
+      let maxW = pdf.getTextWidth(c.label);
+      rowsForCat.forEach(g => {
+        const w = pdf.getTextWidth(cellValue(g.latest, g.eq, c));
+        if (w > maxW) maxW = w;
+      });
+      const cap = (c.key === 'equipmentId' || c.key === 'location') ? 140 : 95;
+      c.w = Math.min(cap, maxW + 12);
+      sumFixed += c.w;
+    });
+    const flexCol = cols.find(c => c.flex);
+    flexCol.w = Math.max(85, usableW - sumFixed);
+
+    // Header row
+    const headerH = 24;
+    let x = marginX;
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(90, 90, 90);
+    cols.forEach(c => {
+      const lines = pdf.splitTextToSize(c.label, c.w - 4);
+      pdf.text(lines, x + 3, ty + 10);
       x += c.w;
     });
     pdf.setDrawColor(220, 220, 220);
@@ -924,7 +997,10 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
 
     rowsForCat.forEach((g, idx) => {
       const latest = g.latest;
-      const rowH = 16;
+      const cellLines = cols.map(c => c.check ? ['#'] : pdf.splitTextToSize(cellValue(latest, g.eq, c), c.w - 6));
+      const maxLines = Math.max(1, ...cellLines.map(l => l.length));
+      const rowH = maxLines * 9 + 6;
+
       if (ty + rowH > pageH - 40) {
         pdf.addPage('a4', 'landscape');
         pageW = pdf.internal.pageSize.getWidth();
@@ -935,24 +1011,17 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
 
       x = marginX;
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(40, 40, 40);
-      cols.forEach(c => {
-        let val = '-';
+      cols.forEach((c, ci) => {
         if (c.check) {
           const cv = latest.checks ? latest.checks[c.key.split(':')[1]] : '';
-          if (cv === 'Pass') { pdf.setTextColor(31, 138, 61); val = 'P'; }
-          else if (cv === 'Fail') { pdf.setTextColor(192, 39, 45); val = 'F'; }
-          else val = '-';
-          pdf.text(val, x + c.w / 2 - 2, ty + 6);
-          pdf.setTextColor(40, 40, 40);
-        } else if (c.key === 'location') {
-          pdf.text(String(locationOf(latest) || '-'), x + 3, ty + 6);
-        } else if (c.key === 'equipmentId') {
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(pdf.splitTextToSize(g.eq, c.w - 4)[0] || '-', x + 3, ty + 6);
-          pdf.setFont('helvetica', 'normal');
+          const cx = x + c.w / 2, cy = ty + 3;
+          if (cv === 'Pass') drawTick(pdf, cx, cy, 7, PASS_COLOR);
+          else if (cv === 'Fail') drawCross(pdf, cx, cy, 7, FAIL_COLOR);
+          else { pdf.setTextColor(180, 180, 180); pdf.text('-', cx - 2, cy + 3); pdf.setTextColor(40, 40, 40); }
         } else {
-          const raw = latest[c.key] !== undefined && latest[c.key] !== '' ? String(latest[c.key]) : '-';
-          pdf.text(pdf.splitTextToSize(raw, c.w - 4)[0] || '-', x + 3, ty + 6);
+          if (c.bold) pdf.setFont('helvetica', 'bold');
+          pdf.text(cellLines[ci], x + 3, ty + 6);
+          if (c.bold) pdf.setFont('helvetica', 'normal');
         }
         x += c.w;
       });
