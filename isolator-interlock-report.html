@@ -42,6 +42,10 @@
   .postcode-bad{color:var(--fail);}
 
   .pending-item, .preview-item{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;}
+  .site-item, .staff-item{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;}
+  .site-item .name, .staff-item .name{font-weight:700;font-size:13.5px;}
+  .site-item .meta, .staff-item .meta{font-size:11.5px;color:var(--grey);margin-top:2px;}
+  .remove-btn{background:none;border:1.5px solid var(--fail);color:var(--fail);font-size:11.5px;font-weight:700;padding:5px 9px;border-radius:6px;cursor:pointer;}
   .pending-item .eq, .preview-item .eq{font-weight:700;font-size:14px;}
   .pending-item .cat, .preview-item .cat{font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
   .pending-item .meta, .preview-item .meta{font-size:12px;color:var(--grey);margin-top:4px;}
@@ -137,7 +141,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Reports</h1>
-        <p id="versionLabel">v6.0 · Management</p>
+        <p id="versionLabel">v7.0 · Management</p>
       </div>
     </div>
     <div class="who">
@@ -157,7 +161,9 @@
   </div>
 
   <div class="tab-bar">
-    <button id="tabReviewBtn" class="active">Review</button>
+    <button id="tabSitesBtn" class="active">Sites</button>
+    <button id="tabStaffBtn">Staff</button>
+    <button id="tabReviewBtn">Review</button>
     <button id="tabScheduleBtn">Test schedule</button>
     <button id="tabFrontBtn">Front page & generate</button>
   </div>
@@ -165,7 +171,47 @@
   <main>
     <div id="banner" class="banner"></div>
 
-    <div id="reviewTab">
+    <div id="sitesTab">
+      <div class="card">
+        <p class="section-label">Add new customer / site</p>
+        <label>Site reference <span class="hint">(short code, e.g. JUB-01 — becomes the site's ID, can't be changed later)</span></label>
+        <input type="text" id="newSiteRef">
+        <label>Customer / site name</label>
+        <input type="text" id="newSiteName">
+        <label>Address line</label>
+        <input type="text" id="newSiteAddressLine">
+        <label>Postcode</label>
+        <input type="text" id="newSitePostcode" style="max-width:160px;text-transform:uppercase;">
+        <label>Agreed limitations <span class="hint">(what's out of scope, and why)</span></label>
+        <textarea id="newSiteLimitations" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;min-height:60px;font-family:'Barlow',sans-serif;"></textarea>
+        <label>Agreed with</label>
+        <input type="text" id="newSiteAgreedWith">
+        <button type="button" class="save-meta-btn" id="addSiteBtn" style="width:100%;background:var(--red);color:#fff;border:none;">Add site</button>
+      </div>
+      <div class="card">
+        <p class="section-label">Existing sites</p>
+        <div id="sitesList"><div class="empty-note">Loading…</div></div>
+      </div>
+    </div>
+
+    <div id="staffTab" style="display:none;">
+      <div class="card">
+        <p class="section-label">Add staff member</p>
+        <label>Name</label>
+        <input type="text" id="newStaffName">
+        <label>Email <span class="hint">(must match their Microsoft sign-in email)</span></label>
+        <input type="text" id="newStaffEmail">
+        <label>Position <span class="hint">(e.g. Electrician, QS)</span></label>
+        <input type="text" id="newStaffPosition">
+        <button type="button" class="save-meta-btn" id="addStaffBtn" style="width:100%;background:var(--red);color:#fff;border:none;">Add staff member</button>
+      </div>
+      <div class="card">
+        <p class="section-label">Existing staff</p>
+        <div id="staffList"><div class="empty-note">Loading…</div></div>
+      </div>
+    </div>
+
+    <div id="reviewTab" style="display:none;">
       <div class="card">
         <p class="section-label">Pending deletions</p>
         <div id="pendingList"><div class="empty-note">Select a site to review.</div></div>
@@ -173,6 +219,9 @@
       <div class="card">
         <p class="section-label">Report preview</p>
         <p class="hint" style="display:block;margin-bottom:14px;">Newest tests first. Tick QSed once you've checked an item — it drops to the bottom, out of the way. Test results aren't editable here, only wording.</p>
+        <div id="bulkDeleteBar" style="display:none;margin-bottom:12px;">
+          <button type="button" class="remove-btn" id="bulkDeleteBtn" style="width:100%;padding:9px;">Delete selected (<span id="bulkDeleteCount">0</span>)</button>
+        </div>
         <div id="previewList"><div class="empty-note">Select a site to preview.</div></div>
       </div>
     </div>
@@ -190,6 +239,8 @@
       <div class="card">
         <p class="section-label">Installation details</p>
         <input type="text" id="metaName" style="display:none;">
+        <label>Certificate number <span class="hint">(manually set — increment yourself for a repeat annual test)</span></label>
+        <input type="text" id="metaCertNumber">
         <label>Address line <span class="hint">(building / street)</span></label>
         <input type="text" id="metaAddressLine">
         <label>Postcode</label>
@@ -199,12 +250,36 @@
         <input type="date" id="metaStarted">
         <label>Next retest due <span class="hint">(suggested automatically, editable)</span></label>
         <input type="text" id="metaDue">
+        <label>Agreed limitations <span class="hint">(review this every year — carried over from site creation, editable here)</span></label>
+        <textarea id="metaLimitations" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;min-height:60px;font-family:'Barlow',sans-serif;"></textarea>
+        <label>Agreed with</label>
+        <input type="text" id="metaAgreedWith">
         <button type="button" class="save-meta-btn" id="saveMetaBtn">Save details</button>
         <div id="satisfactoryBox"></div>
       </div>
+
+      <div class="card">
+        <p class="section-label">Sign-off</p>
+        <p class="hint" style="display:block;margin-bottom:14px;">Defaults to whoever tested the most items on this report — override if needed. Signatures are uploaded fresh each time a report is generated, not stored.</p>
+
+        <label>Inspected and tested by</label>
+        <select id="signInspectedName" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;"></select>
+        <label>Position</label>
+        <input type="text" id="signInspectedPosition" placeholder="E.g. Electrician">
+        <label>Signature <span class="hint">(image file)</span></label>
+        <input type="file" accept="image/*" id="signInspectedFile" style="margin-bottom:20px;">
+
+        <label>Report authorised by</label>
+        <input type="text" id="signAuthName" disabled style="background:#f2f2f2;">
+        <label>Position</label>
+        <input type="text" id="signAuthPosition" placeholder="E.g. QS">
+        <label>Signature <span class="hint">(image file)</span></label>
+        <input type="file" accept="image/*" id="signAuthFile">
+      </div>
+
       <div class="card">
         <p class="section-label">Generate report</p>
-        <p class="hint" style="display:block;">Builds a landscape PDF: front page, one section per equipment category (sorted by mill location), and a final Observations page. Resolve pending deletions first for an accurate report.</p>
+        <p class="hint" style="display:block;">Builds a landscape/portrait mixed PDF: front page, one section per equipment category (sorted by mill location), an Observations page, and a final Declaration/Scope/Limitations page. Resolve pending deletions first for an accurate report.</p>
         <button type="button" class="generate-btn" id="generateBtn">Generate PDF</button>
       </div>
     </div>
@@ -440,22 +515,121 @@ onAuthStateChanged(auth, async (user) => {
 function boot() {
   loadSites();
   buildCatPills();
+  renderSitesList();
+  renderStaffList();
 }
 
 // ---- Tabs ----
+document.getElementById('tabSitesBtn').addEventListener('click', () => switchTab('sites'));
+document.getElementById('tabStaffBtn').addEventListener('click', () => switchTab('staff'));
 document.getElementById('tabReviewBtn').addEventListener('click', () => switchTab('review'));
 document.getElementById('tabScheduleBtn').addEventListener('click', () => switchTab('schedule'));
 document.getElementById('tabFrontBtn').addEventListener('click', () => switchTab('front'));
 function switchTab(which) {
+  document.getElementById('sitesTab').style.display = which === 'sites' ? 'block' : 'none';
+  document.getElementById('staffTab').style.display = which === 'staff' ? 'block' : 'none';
   document.getElementById('reviewTab').style.display = which === 'review' ? 'block' : 'none';
   document.getElementById('scheduleTab').style.display = which === 'schedule' ? 'block' : 'none';
   document.getElementById('frontTab').style.display = which === 'front' ? 'block' : 'none';
+  document.getElementById('tabSitesBtn').classList.toggle('active', which === 'sites');
+  document.getElementById('tabStaffBtn').classList.toggle('active', which === 'staff');
   document.getElementById('tabReviewBtn').classList.toggle('active', which === 'review');
   document.getElementById('tabScheduleBtn').classList.toggle('active', which === 'schedule');
   document.getElementById('tabFrontBtn').classList.toggle('active', which === 'front');
   if (which === 'schedule') renderSchedule();
   if (which === 'front') renderFront();
 }
+
+// ---- Sites management ----
+async function renderSitesList() {
+  const list = document.getElementById('sitesList');
+  try {
+    const snap = await getDocs(collection(db, 'jobs'));
+    if (snap.empty) { list.innerHTML = '<div class="empty-note">No sites yet.</div>'; return; }
+    const rows = [];
+    snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+    rows.sort((a, b) => a.id.localeCompare(b.id));
+    list.innerHTML = rows.map(r => `
+      <div class="site-item">
+        <div>
+          <div class="name">${r.id} — ${r.name || ''}</div>
+          <div class="meta">${r.addressLine || 'No address set'} ${r.postcode || ''} · ${r.status || 'Active'}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="empty-note">Could not load — ' + (e.message || e.code || 'unknown error') + '</div>';
+  }
+}
+
+document.getElementById('addSiteBtn').addEventListener('click', async () => {
+  const ref = document.getElementById('newSiteRef').value.trim();
+  const name = document.getElementById('newSiteName').value.trim();
+  if (!ref || !name) { alert('Site reference and name are both required.'); return; }
+  try {
+    await setDoc(doc(db, 'jobs', ref), {
+      name,
+      status: 'Active',
+      addressLine: document.getElementById('newSiteAddressLine').value.trim(),
+      postcode: document.getElementById('newSitePostcode').value.trim(),
+      agreedLimitations: document.getElementById('newSiteLimitations').value.trim(),
+      agreedWith: document.getElementById('newSiteAgreedWith').value.trim()
+    });
+    ['newSiteRef','newSiteName','newSiteAddressLine','newSitePostcode','newSiteLimitations','newSiteAgreedWith'].forEach(id => document.getElementById(id).value = '');
+    await renderSitesList();
+    await loadSites();
+    const banner = document.getElementById('banner');
+    banner.className = 'banner ok'; banner.textContent = 'Site added: ' + ref; banner.style.display = 'block';
+  } catch (e) {
+    alert('Could not add site — ' + (e.message || e.code || 'unknown error'));
+  }
+});
+
+// ---- Staff management ----
+async function renderStaffList() {
+  const list = document.getElementById('staffList');
+  try {
+    const snap = await getDocs(collection(db, 'staff'));
+    if (snap.empty) { list.innerHTML = '<div class="empty-note">No staff added yet.</div>'; return; }
+    const rows = [];
+    snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+    rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    list.innerHTML = rows.map(r => `
+      <div class="staff-item">
+        <div>
+          <div class="name">${r.name || r.id}</div>
+          <div class="meta">${r.id} · ${r.position || 'No position set'}</div>
+        </div>
+        <button type="button" class="remove-btn" data-email="${r.id}">Remove</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remove ' + btn.dataset.email + ' from the staff list?')) return;
+        try { await deleteDoc(doc(db, 'staff', btn.dataset.email)); await renderStaffList(); }
+        catch (e) { alert('Could not remove — ' + (e.message || e.code || 'unknown error')); }
+      });
+    });
+  } catch (e) {
+    list.innerHTML = '<div class="empty-note">Could not load — ' + (e.message || e.code || 'unknown error') + '</div>';
+  }
+}
+
+document.getElementById('addStaffBtn').addEventListener('click', async () => {
+  const name = document.getElementById('newStaffName').value.trim();
+  const email = document.getElementById('newStaffEmail').value.trim().toLowerCase();
+  const position = document.getElementById('newStaffPosition').value.trim();
+  if (!name || !email) { alert('Name and email are both required.'); return; }
+  try {
+    await setDoc(doc(db, 'staff', email), { name, position });
+    ['newStaffName','newStaffEmail','newStaffPosition'].forEach(id => document.getElementById(id).value = '');
+    await renderStaffList();
+    const banner = document.getElementById('banner');
+    banner.className = 'banner ok'; banner.textContent = 'Staff member added: ' + name; banner.style.display = 'block';
+  } catch (e) {
+    alert('Could not add staff member — ' + (e.message || e.code || 'unknown error'));
+  }
+});
 
 // ---- Sites ----
 async function loadSites() {
@@ -537,6 +711,24 @@ function renderPending() {
 }
 
 // ---- Report preview (Review tab) ----
+function updateBulkDeleteBar() {
+  const selected = document.querySelectorAll('.bulk-select:checked');
+  const bar = document.getElementById('bulkDeleteBar');
+  document.getElementById('bulkDeleteCount').textContent = selected.length;
+  bar.style.display = selected.length > 0 ? 'block' : 'none';
+}
+document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
+  const selected = Array.from(document.querySelectorAll('.bulk-select:checked')).map(cb => cb.dataset.bulkId);
+  if (selected.length === 0) return;
+  if (!confirm('Permanently delete ' + selected.length + ' test record' + (selected.length > 1 ? 's' : '') + '? This cannot be undone.')) return;
+  try {
+    for (const id of selected) { await deleteDoc(doc(db, 'isolatorTests', id)); }
+    await loadSiteData();
+  } catch (e) {
+    alert('Could not delete all selected records — ' + (e.message || e.code || 'unknown error'));
+  }
+});
+
 function renderPreview() {
   const previewList = document.getElementById('previewList');
   let groups = getReportGroups();
@@ -560,15 +752,19 @@ function renderPreview() {
       return `
         <div class="preview-item ${isQsed ? 'qsed' : ''}">
           <div class="top">
-            <div>
-              <div class="cat">${latest.category || 'Uncategorised'} · ${latest.date || '—'}</div>
-              <div class="eq">${g.eq}</div>
-              ${detailLine ? `<div class="detail-line">${detailLine}</div>` : ''}
-              ${latest.manufacturer || latest.model ? `<div class="detail-line">${[latest.manufacturer, latest.model].filter(Boolean).join(', ')}</div>` : ''}
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <input type="checkbox" class="bulk-select" data-bulk-id="${latest._id}" style="margin-top:4px;">
+              <div>
+                <div class="cat">${latest.category || 'Uncategorised'} · ${latest.date || '—'}</div>
+                <div class="eq">${g.eq}</div>
+                ${detailLine ? `<div class="detail-line">${detailLine}</div>` : ''}
+                ${latest.manufacturer || latest.model ? `<div class="detail-line">${[latest.manufacturer, latest.model].filter(Boolean).join(', ')}</div>` : ''}
+              </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
               <span class="chip ${isPass ? 'chip-pass' : 'chip-fail'}">${isPass ? 'Pass' : 'Fail'}</span>
               <button type="button" class="edit-btn" data-id="${latest._id}">Edit</button>
+              <button type="button" class="remove-btn" data-single-delete="${latest._id}">Delete</button>
               <label class="qsed-check"><input type="checkbox" data-qsed-id="${latest._id}" ${isQsed ? 'checked' : ''}> QSed</label>
             </div>
           </div>
@@ -613,6 +809,17 @@ function renderPreview() {
         await updateDoc(doc(db, 'isolatorTests', cb.dataset.qsedId), { qsed: cb.checked });
         await loadSiteData();
       } catch (e) { alert('Could not update — ' + (e.message || e.code || 'unknown error')); }
+    });
+  });
+
+  previewList.querySelectorAll('.bulk-select').forEach(cb => {
+    cb.addEventListener('change', updateBulkDeleteBar);
+  });
+  previewList.querySelectorAll('[data-single-delete]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Permanently delete this test record? This cannot be undone.')) return;
+      try { await deleteDoc(doc(db, 'isolatorTests', btn.dataset.singleDelete)); await loadSiteData(); }
+      catch (e) { alert('Could not delete — ' + (e.message || e.code || 'unknown error')); }
     });
   });
 
@@ -769,14 +976,23 @@ function fullAddress() {
   return [line, pc].filter(Boolean).join(', ');
 }
 
+function tallyEngineers(groups) {
+  const counts = {};
+  groups.forEach(g => { if (g.latest && g.latest.engineer) counts[g.latest.engineer] = (counts[g.latest.engineer] || 0) + 1; });
+  return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+}
+
 function renderFront() {
   const siteSelect = document.getElementById('site');
   document.getElementById('metaName').value = siteMeta.name || (siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '');
+  document.getElementById('metaCertNumber').value = siteMeta.certificateNumber || '';
   document.getElementById('metaAddressLine').value = siteMeta.addressLine || '';
   document.getElementById('metaPostcode').value = siteMeta.postcode || '';
   document.getElementById('postcodeStatus').textContent = '';
   document.getElementById('metaStarted').value = siteMeta.testingStarted || '';
   document.getElementById('metaDue').value = siteMeta.nextRetestDue || suggestedRetestDue();
+  document.getElementById('metaLimitations').value = siteMeta.agreedLimitations || '';
+  document.getElementById('metaAgreedWith').value = siteMeta.agreedWith || '';
   if (siteMeta.postcode) checkPostcode();
 
   const groups = getReportGroups();
@@ -789,6 +1005,13 @@ function renderFront() {
       <p class="sub">Calculated automatically from the active register — not editable.</p>
     </div>
   `;
+
+  const engineers = tallyEngineers(groups);
+  const nameSelect = document.getElementById('signInspectedName');
+  nameSelect.innerHTML = engineers.length
+    ? engineers.map(e => `<option>${e}</option>`).join('')
+    : '<option value="">No tests logged yet</option>';
+  document.getElementById('signAuthName').value = currentUser.displayName || currentUser.email;
 }
 
 document.getElementById('saveMetaBtn').addEventListener('click', async () => {
@@ -796,15 +1019,21 @@ document.getElementById('saveMetaBtn').addEventListener('click', async () => {
   if (!siteRef) return;
   try {
     await setDoc(doc(db, 'jobs', siteRef), {
+      certificateNumber: document.getElementById('metaCertNumber').value.trim(),
       addressLine: document.getElementById('metaAddressLine').value.trim(),
       postcode: document.getElementById('metaPostcode').value.trim(),
       testingStarted: document.getElementById('metaStarted').value,
-      nextRetestDue: document.getElementById('metaDue').value.trim()
+      nextRetestDue: document.getElementById('metaDue').value.trim(),
+      agreedLimitations: document.getElementById('metaLimitations').value.trim(),
+      agreedWith: document.getElementById('metaAgreedWith').value.trim()
     }, { merge: true });
+    siteMeta.certificateNumber = document.getElementById('metaCertNumber').value.trim();
     siteMeta.addressLine = document.getElementById('metaAddressLine').value.trim();
     siteMeta.postcode = document.getElementById('metaPostcode').value.trim();
     siteMeta.testingStarted = document.getElementById('metaStarted').value;
     siteMeta.nextRetestDue = document.getElementById('metaDue').value.trim();
+    siteMeta.agreedLimitations = document.getElementById('metaLimitations').value.trim();
+    siteMeta.agreedWith = document.getElementById('metaAgreedWith').value.trim();
     const banner = document.getElementById('banner');
     banner.className = 'banner ok'; banner.textContent = 'Installation details saved.'; banner.style.display = 'block';
   } catch (e) {
@@ -825,6 +1054,27 @@ function loadImageAsDataURL(url) {
     img.onerror = reject;
     img.src = url;
   });
+}
+
+function fileToImageData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => resolve({ dataUrl: reader.result, w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatDateDMY(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function askQsedChoice(notQsedCount, total) {
@@ -885,7 +1135,13 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   }
 
   const logo = await loadImageAsDataURL('sw-logo.png').catch(() => null);
-  const reportRef = siteRef.toUpperCase() + '-' + new Date().toISOString().slice(0, 10);
+  const inspectedFileInput = document.getElementById('signInspectedFile').files[0];
+  const authFileInput = document.getElementById('signAuthFile').files[0];
+  const inspectedSig = inspectedFileInput ? await fileToImageData(inspectedFileInput).catch(() => null) : null;
+  const authSig = authFileInput ? await fileToImageData(authFileInput).catch(() => null) : null;
+
+  const certNumber = document.getElementById('metaCertNumber').value.trim() || (siteRef.toUpperCase() + '-' + new Date().toISOString().slice(0, 10));
+  const reportRef = certNumber;
 
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
@@ -922,6 +1178,15 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   // ---- Front page ----
   const contentW = pageW - marginX * 2;
 
+  function ensureRoom(needed) {
+    if (y + needed > pageH - 40) {
+      pdf.addPage('a4', 'portrait');
+      pageW = pdf.internal.pageSize.getWidth();
+      pageH = pdf.internal.pageSize.getHeight();
+      y = 40;
+    }
+  }
+
   if (logo) {
     const logoW = 130;
     const logoH = logoW * (logo.h / logo.w);
@@ -933,7 +1198,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
   pdf.setTextColor(110, 110, 110);
   pdf.text('Isolator, interlock and emergency stop testing record', pageW - marginX, 58, { align: 'right' });
-  pdf.text('Report reference: ' + reportRef, pageW - marginX, 70, { align: 'right' });
+  pdf.text('Certificate number: ' + certNumber, pageW - marginX, 70, { align: 'right' });
 
   let y = 95;
   pdf.setDrawColor(220, 220, 220);
@@ -944,14 +1209,45 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   const metaRows = [
     ['Installation', siteName],
     ['Address', fullAddress()],
-    ['Testing started', document.getElementById('metaStarted').value],
-    ['Report generated', new Date().toLocaleDateString('en-GB')],
-    ['Next retest due', document.getElementById('metaDue').value],
-    ['Generated by', currentUser.displayName || currentUser.email]
+    ['Testing started', formatDateDMY(document.getElementById('metaStarted').value)],
+    ['Report generated', formatDateDMY(new Date().toISOString().slice(0, 10))],
+    ['Next retest due', document.getElementById('metaDue').value]
   ];
-  metaRows.forEach((r, i) => { y = labelValueRow(y, contentW, r[0], r[1], i % 2 === 1); });
+  metaRows.forEach((r, i) => { ensureRoom(22); y = labelValueRow(y, contentW, r[0], r[1], i % 2 === 1); });
 
   y += 26;
+  ensureRoom(20 + 22 * 4);
+  y = sectionBar(y, 'Simpson & Wood — Company Details', contentW);
+  const companyRows = [
+    ['Trading title', 'Simpson & Wood Ltd'],
+    ['Address', 'Unit 7-10 The Bull Commercial Centre, Stockton Lane, York, YO32 9LE'],
+    ['Phone', '01904400144'],
+    ['Website', 'www.simpsonandwood.co.uk'],
+    ['NICEIC enrolment number', '015032']
+  ];
+  companyRows.forEach((r, i) => { ensureRoom(22); y = labelValueRow(y, contentW, r[0], r[1], i % 2 === 1); });
+
+  const limitationsText = document.getElementById('metaLimitations').value.trim();
+  if (limitationsText) {
+    y += 26;
+    ensureRoom(20 + 40);
+    y = sectionBar(y, 'Agreed Limitations', contentW);
+    y += 10;
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
+    const limLines = pdf.splitTextToSize(limitationsText, contentW);
+    ensureRoom(limLines.length * 11 + 16);
+    pdf.text(limLines, marginX, y);
+    y += limLines.length * 11 + 8;
+    const agreedWith = document.getElementById('metaAgreedWith').value.trim();
+    if (agreedWith) {
+      pdf.setFont('helvetica', 'italic'); pdf.setFontSize(8.5); pdf.setTextColor(110, 110, 110);
+      pdf.text('Agreed with: ' + agreedWith, marginX, y);
+      y += 14;
+    }
+  }
+
+  y += 26;
+  ensureRoom(20 + 70);
   const anyFail = groups.some(g => g.latest && !overallPassOf(g.latest));
   y = sectionBar(y, 'Overall Assessment', contentW);
   const boxH = 60;
@@ -968,6 +1264,37 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     ? 'One or more items on the register have failed testing and require further action.'
     : 'No outstanding failures recorded against this site at the time of generation.', marginX + 12, y + 46);
   y += boxH + 10;
+
+  // ---- Sign-off ----
+  y += 16;
+  ensureRoom(20 + 90);
+  y = sectionBar(y, 'Declaration Sign-off', contentW);
+  y += 12;
+
+  function signOffBlock(label, name, position, sig, dateStr) {
+    ensureRoom(90);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5); pdf.setTextColor(26, 26, 26);
+    pdf.text(label, marginX, y);
+    y += 14;
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
+    pdf.text('Name: ' + (name || '-'), marginX, y);
+    pdf.text('Position: ' + (position || '-'), marginX + 220, y);
+    pdf.text('Date: ' + formatDateDMY(dateStr), marginX + 400, y);
+    y += 10;
+    if (sig) {
+      const sigW = 100, sigH = sigW * (sig.h / sig.w);
+      pdf.addImage(sig.dataUrl, marginX, y, sigW, Math.min(sigH, 45));
+      y += Math.min(sigH, 45) + 10;
+    } else {
+      pdf.setFont('helvetica', 'italic'); pdf.setFontSize(8.5); pdf.setTextColor(150, 150, 150);
+      pdf.text('No signature uploaded', marginX, y + 12);
+      y += 26;
+    }
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  signOffBlock('Inspected and tested by', document.getElementById('signInspectedName').value, document.getElementById('signInspectedPosition').value.trim(), inspectedSig, todayStr);
+  signOffBlock('Report authorised by', document.getElementById('signAuthName').value, document.getElementById('signAuthPosition').value.trim(), authSig, todayStr);
 
   // ---- One landscape table per category, sorted by location ----
   // Observations are collected here and printed on their own page at the end,
@@ -1137,6 +1464,121 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       oy += 14;
     });
   }
+
+  // ---- Final Declaration, Scope and Limitations page ----
+  pdf.addPage('a4', 'portrait');
+  pageW = pdf.internal.pageSize.getWidth();
+  pageH = pdf.internal.pageSize.getHeight();
+  let dy = 40;
+  function dEnsure(needed) {
+    if (dy + needed > pageH - 40) {
+      pdf.addPage('a4', 'portrait');
+      pageW = pdf.internal.pageSize.getWidth();
+      pageH = pdf.internal.pageSize.getHeight();
+      dy = 40;
+    }
+  }
+
+  const declSections = [
+    { type: 'title', text: 'Final Declaration, Scope and Limitations' },
+    { type: 'heading', text: 'Declaration' },
+    { type: 'para', text: 'The inspection and functional testing documented within this report was undertaken to assess the observed condition and functional response of the machinery isolation and safety devices identified within the report schedules.' },
+    { type: 'para', text: 'The inspection and testing included, where applicable and specifically identified within the schedules:' },
+    { type: 'bullets', items: [
+      'control-panel isolators and supply-disconnecting devices',
+      'local motor isolators',
+      'emergency-stop buttons, pull cords and other emergency-stop actuators',
+      'guard switches and machine interlocking devices',
+      'associated stop, reset and restart functions',
+      'measures intended to prevent unexpected or automatic restart'
+    ]},
+    { type: 'para', text: 'The person or persons responsible for the inspection and testing have exercised reasonable skill and care in undertaking the work and recording the results. The information contained within this report, including its observations and attached schedules, is considered to provide an accurate record of the condition and functional response of the devices tested at the time of inspection, taking account of the stated scope, extent, operating conditions and limitations.' },
+
+    { type: 'heading', text: 'Basis of the Inspection and Testing Procedure' },
+    { type: 'para', text: 'The inspection and testing procedure was developed with regard to:' },
+    { type: 'bullets', items: [
+      'the Provision and Use of Work Equipment Regulations 1998, as amended',
+      'relevant Health and Safety Executive guidance',
+      'the machinery manufacturer\u2019s instructions and available technical documentation',
+      'the machine-specific risk assessment, where made available',
+      'the intended operating functions of the machinery',
+      'relevant principles contained within applicable machinery-safety and electrical-equipment standards identified in the report'
+    ]},
+    { type: 'para', text: 'Where applicable to the equipment and functions tested, guidance may include relevant principles contained within:' },
+    { type: 'bullets', items: [
+      'BS EN 60204-1 \u2014 Electrical equipment of machines',
+      'BS EN ISO 13850 \u2014 Emergency-stop function',
+      'BS EN ISO 14119 \u2014 Interlocking devices associated with guards',
+      'BS EN ISO 14118 \u2014 Prevention of unexpected start-up',
+      'BS EN ISO 13849 \u2014 Safety-related parts of control systems'
+    ]},
+    { type: 'para', text: 'References to legislation, guidance documents and technical standards indicate the basis upon which the inspection and testing procedure was prepared. They do not imply that every provision of those documents has been assessed or that a complete machinery conformity assessment has been undertaken.' },
+
+    { type: 'heading', text: 'Meaning of a Satisfactory Functional Test' },
+    { type: 'para', text: 'Where a device is recorded as satisfactory, this means that it operated in accordance with its identified or reasonably understood intended function during the inspection and tests performed.' },
+    { type: 'para', text: 'A satisfactory functional test does not, in isolation, confirm:' },
+    { type: 'bullets', items: [
+      'the adequacy of the original machinery or safety-system design',
+      'achievement of a required Performance Level or Safety Integrity Level',
+      'compliance with all applicable machinery-supply legislation',
+      'the absence of concealed defects, intermittent faults or fault masking',
+      'the suitability of stopping times or safety distances',
+      'the integrity of components that could not be inspected or tested',
+      'isolation from every electrical, pneumatic, hydraulic, mechanical, thermal or stored-energy source',
+      'that the machinery is safe for every possible use, operating condition or foreseeable misuse'
+    ]},
+
+    { type: 'heading', text: 'Limitations' },
+    { type: 'para', text: 'The findings of this report apply only to the machinery, devices and functions specifically identified within the report schedules.' },
+    { type: 'para', text: 'The report records the condition and operation observed at the time of inspection. It cannot guarantee continued operation after the inspection date and does not remove the duty of the person responsible for the equipment to maintain it in a safe condition, act upon identified defects and establish an appropriate ongoing inspection and testing regime.' },
+    { type: 'para', text: 'Unless expressly stated otherwise, this report does not constitute:' },
+    { type: 'bullets', items: [
+      'an Electrical Installation Condition Report',
+      'a complete machinery risk assessment',
+      'a CE or UKCA conformity assessment',
+      'validation of a safety-related control system',
+      'verification of a Performance Level or Safety Integrity Level',
+      'an assessment of compliance with all requirements of PUWER',
+      'a detailed examination of the machinery\u2019s mechanical integrity',
+      'confirmation that all sources of hazardous or stored energy have been identified'
+    ]},
+
+    { type: 'heading', text: 'Overall Statement' },
+    { type: 'para', text: 'Subject to the observations, defects, limitations and recommendations recorded within this report, the devices identified as satisfactory operated in accordance with their identified intended functions during the inspection and tests performed.' }
+  ];
+
+  declSections.forEach(sec => {
+    const fullW = pageW - marginX * 2;
+    if (sec.type === 'title') {
+      dEnsure(30);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(26, 26, 26);
+      pdf.text(sec.text, marginX, dy);
+      dy += 10;
+      pdf.setDrawColor(220, 220, 220);
+      pdf.line(marginX, dy, pageW - marginX, dy);
+      dy += 20;
+    } else if (sec.type === 'heading') {
+      dEnsure(20);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10.5); pdf.setTextColor(208, 34, 42);
+      pdf.text(sec.text.toUpperCase(), marginX, dy);
+      dy += 16;
+    } else if (sec.type === 'para') {
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(50, 50, 50);
+      const lines = pdf.splitTextToSize(sec.text, fullW);
+      dEnsure(lines.length * 11 + 6);
+      pdf.text(lines, marginX, dy);
+      dy += lines.length * 11 + 8;
+    } else if (sec.type === 'bullets') {
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(50, 50, 50);
+      sec.items.forEach(item => {
+        const lines = pdf.splitTextToSize('\u2022  ' + item, fullW - 10);
+        dEnsure(lines.length * 11 + 2);
+        pdf.text(lines, marginX + 8, dy);
+        dy += lines.length * 11 + 3;
+      });
+      dy += 8;
+    }
+  });
 
   const totalPages = pdf.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
