@@ -36,10 +36,10 @@
   .card{background:var(--card);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);}
   .section-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px;color:var(--red);margin:0 0 12px;}
   .hint{color:var(--grey);font-size:12.5px;}
-  .postcode-ok{color:var(--pass);}
-  .postcode-bad{color:var(--fail);}
   label{display:block;font-size:12.5px;font-weight:600;margin:0 0 5px;}
   input[type=text], input[type=date]{width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;font-family:'Barlow',sans-serif;}
+  .postcode-ok{color:var(--pass);}
+  .postcode-bad{color:var(--fail);}
 
   .pending-item, .preview-item{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;}
   .pending-item .eq, .preview-item .eq{font-weight:700;font-size:14px;}
@@ -73,13 +73,13 @@
   .pill.active{border-color:var(--red);background:var(--red);color:#fff;}
   .loc-select{max-width:240px;margin-bottom:14px;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;}
 
-  .schedule-wrap{overflow-x:auto;margin-bottom:20px;}
+  .schedule-wrap{overflow-x:auto;margin-bottom:8px;}
   .schedule-cat-label{font-size:13px;font-weight:700;margin:0 0 8px;}
+  .schedule-legend{font-size:11px;color:var(--grey);margin:0 0 20px;line-height:1.6;}
   table.schedule{border-collapse:collapse;font-size:11.5px;border:1px solid var(--line);}
   table.schedule th, table.schedule td{border:1px solid var(--line);padding:6px 8px;}
-  table.schedule th{background:#f2f1ee;font-weight:600;color:var(--grey);vertical-align:bottom;}
+  table.schedule th{background:#f2f1ee;font-weight:600;color:var(--grey);}
   table.schedule tbody tr:nth-child(even){background:#faf9f7;}
-  .rot-head{transform:rotate(-40deg);transform-origin:bottom left;white-space:nowrap;width:14px;font-size:10.5px;}
   .cell-pass{color:var(--pass);text-align:center;font-weight:700;}
   .cell-fail{color:var(--fail);text-align:center;font-weight:700;}
 
@@ -137,7 +137,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Reports</h1>
-        <p id="versionLabel">v5.0 · Management</p>
+        <p id="versionLabel">v6.0 · Management</p>
       </div>
     </div>
     <div class="who">
@@ -189,8 +189,7 @@
     <div id="frontTab" style="display:none;">
       <div class="card">
         <p class="section-label">Installation details</p>
-        <label>Installation name</label>
-        <input type="text" id="metaName">
+        <input type="text" id="metaName" style="display:none;">
         <label>Address line <span class="hint">(building / street)</span></label>
         <input type="text" id="metaAddressLine">
         <label>Postcode</label>
@@ -205,7 +204,7 @@
       </div>
       <div class="card">
         <p class="section-label">Generate report</p>
-        <p class="hint" style="display:block;">Builds a landscape PDF: front page, then one section per equipment category sorted by mill location. Resolve pending deletions first for an accurate report.</p>
+        <p class="hint" style="display:block;">Builds a landscape PDF: front page, one section per equipment category (sorted by mill location), and a final Observations page. Resolve pending deletions first for an accurate report.</p>
         <button type="button" class="generate-btn" id="generateBtn">Generate PDF</button>
       </div>
     </div>
@@ -252,9 +251,8 @@ msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' 
 // Kept in sync by hand with the engineer tool's CATEGORIES object.
 const CATEGORIES = {
   'Panel Isolator': {
-    fields: [{ key: 'panelName', label: 'Panel Name' }],
-    idFields: ['panelName'], idSuffix: 'Isolator', hasIsolatorSpecs: true,
-    locationKey: 'panelName',
+    fields: [{ key: 'millLocation', label: 'Mill Location' }, { key: 'panelName', label: 'Panel Name' }],
+    locationKey: 'millLocation', idMode: 'letter', suffix: 'PI', hasIsolatorSpecs: true,
     checks: [
       { key: 'operation', label: 'Operation' }, { key: 'guards', label: 'All guards & shields in place' },
       { key: 'handle', label: 'Handle' }, { key: 'interlock', label: 'Interlock working' },
@@ -263,8 +261,7 @@ const CATEGORIES = {
   },
   'Motor Isolator': {
     fields: [{ key: 'millLocation', label: 'Mill Location' }, { key: 'equipmentName', label: 'Equipment Name' }],
-    idFields: ['millLocation', 'equipmentName'], idSuffix: 'Isolator', hasIsolatorSpecs: true,
-    locationKey: 'millLocation',
+    locationKey: 'millLocation', idMode: 'tag', tagField: 'equipmentName', suffix: 'MI', hasIsolatorSpecs: true,
     checks: [
       { key: 'operation', label: 'Operation' }, { key: 'handleCondition', label: 'Handle in good condition' },
       { key: 'interlock', label: 'Interlock working' }, { key: 'heat', label: 'No signs of heat on any connections' },
@@ -273,11 +270,10 @@ const CATEGORIES = {
       { key: 'connectionsSecure', label: 'Connections secure' }, { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
     ]
   },
-  'E-Stop': {
+  'Emergency Stop': {
     fields: [{ key: 'millLocation', label: 'Mill Location' }, { key: 'physicalLocation', label: 'Physical Location' },
       { key: 'relayLocation', label: 'Location of Safety Relay' }, { key: 'equipmentAffected', label: 'Equipment Affected When Pressed' }],
-    idFields: ['millLocation', 'physicalLocation'], idSuffix: 'E-Stop',
-    locationKey: 'millLocation',
+    locationKey: 'millLocation', idMode: 'letter', suffix: 'ES',
     checks: [
       { key: 'buttonOperation', label: 'Button operation' }, { key: 'shroudLabel', label: 'Shroud and/or label in correct position' },
       { key: 'terminalBlocks', label: 'Terminal blocks secure on rear' }, { key: 'relayOperates', label: 'E-stop relay operates' },
@@ -289,8 +285,7 @@ const CATEGORIES = {
   'Safety Interlock': {
     fields: [{ key: 'millLocation', label: 'Mill Location' }, { key: 'physicalLocation', label: 'Physical Location' },
       { key: 'equipmentAffected', label: 'Equipment Affected' }],
-    idFields: ['millLocation', 'physicalLocation'], idSuffix: 'Interlock',
-    locationKey: 'millLocation',
+    locationKey: 'millLocation', idMode: 'letter', suffix: 'SI',
     checks: [
       { key: 'mounted', label: 'Interlock correctly mounted and secure' }, { key: 'channelsDisconnect', label: 'Do both safety channels disconnect' },
       { key: 'machineryStops', label: 'All required machinery stops immediately' }, { key: 'resetOperational', label: 'E-stop relay reset button operational' },
@@ -302,13 +297,66 @@ const CATEGORIES = {
   }
 };
 const CATEGORY_NAMES = Object.keys(CATEGORIES);
+const SECTION_HEADINGS = {
+  'Panel Isolator': 'Panel Isolator Functional Testing',
+  'Motor Isolator': 'Motor Isolator Functional Testing',
+  'Emergency Stop': 'Emergency Stop Functional Testing',
+  'Safety Interlock': 'Safety Interlock Functional Testing'
+};
 
+const LOCATION_CODES = {
+  'Press line 1': 'PL1', 'Press line 2': 'PL2', 'Press line 3': 'PL3', 'Press line 4': 'PL4',
+  'Intake': 'INT', 'Front outloading': 'FOL', 'Rear outloading': 'ROL', 'Blending': 'BLD',
+  'Routing': 'RTG', 'Mixing': 'MIX', 'Mixer 1': 'MX1', 'Mixer 2': 'MX2', 'Packing': 'PKG',
+  'Weigher 1': 'WG1', 'Weigher 2': 'WG2', 'Weigher 3': 'WG3', 'Weigher 4': 'WG4', 'Weigher 5': 'WG5',
+  'Weigher 6': 'WG6', 'Weigher 7': 'WG7', 'Weigher 8': 'WG8', 'Weigher 9': 'WG9',
+  'Grinder 1': 'GR1', 'Grinder 2': 'GR2', 'Grinder 3': 'GR3',
+  'Mixing shed mixer 1': 'MSM1', 'Mixing shed mixer 2': 'MSM2'
+};
+function locationCode(name) {
+  if (!name) return '';
+  const trimmed = name.trim();
+  if (LOCATION_CODES[trimmed]) return LOCATION_CODES[trimmed];
+  const words = trimmed.split(/\s+/);
+  let code = words.length === 1 ? words[0].slice(0, 4) : words.map(w => w[0]).join('').slice(0, 4);
+  return code.toUpperCase();
+}
+function letterFromIndex(i) {
+  let s = ''; i++;
+  while (i > 0) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); }
+  return s;
+}
+function computeLetterId(category, locCode) {
+  const def = CATEGORIES[category];
+  const escaped = locCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('^' + escaped + '-([A-Z]+)-' + def.suffix + '$');
+  const used = new Set();
+  siteHistoryCache.forEach(d => {
+    if (d.category === category && d.equipmentId) {
+      const m = d.equipmentId.match(re);
+      if (m) used.add(m[1]);
+    }
+  });
+  let idx = 0;
+  while (used.has(letterFromIndex(idx))) idx++;
+  return locCode + '-' + letterFromIndex(idx) + '-' + def.suffix;
+}
+function computeTagId(category, locCode, tag) {
+  const def = CATEGORIES[category];
+  if (!tag) return '';
+  return locCode + '-' + tag.trim().toUpperCase().replace(/\s+/g, '') + '-' + def.suffix;
+}
 function computeEquipmentId(category, values) {
   const def = CATEGORIES[category];
   if (!def) return '';
-  const parts = def.idFields.map(k => (values[k] || '').trim()).filter(Boolean);
-  if (parts.length < def.idFields.length) return '';
-  return parts.join(' ') + ' ' + def.idSuffix;
+  const locName = values[def.locationKey];
+  if (!locName) return '';
+  const locCode = locationCode(locName);
+  if (def.idMode === 'tag') {
+    const tag = values[def.tagField];
+    return tag ? computeTagId(category, locCode, tag) : '';
+  }
+  return computeLetterId(category, locCode);
 }
 
 function locationOf(record) {
@@ -647,11 +695,14 @@ function renderSchedule() {
     if (rows.length === 0) return;
     rows.sort((a, b) => locationOf(a.latest).localeCompare(locationOf(b.latest)) || a.eq.localeCompare(b.eq));
 
-    html += `<p class="schedule-cat-label">${cat}</p><div class="schedule-wrap"><table class="schedule"><thead><tr>`;
+    const checkCodes = def.checks.map((c, i) => 'T' + (i + 1));
+    html += `<p class="schedule-cat-label">${cat}</p>`;
+    html += `<p class="schedule-legend">${def.checks.map((c, i) => 'T' + (i + 1) + ' = ' + c.label).join(' &nbsp;·&nbsp; ')}</p>`;
+    html += `<div class="schedule-wrap"><table class="schedule"><thead><tr>`;
     html += `<th>Location</th><th>Equipment ID</th><th>Manufacturer</th>`;
     if (def.hasIsolatorSpecs) html += `<th>Current rating</th><th>Poles</th><th>Auxiliary</th>`;
-    def.checks.forEach(c => { html += `<th><div class="rot-head">${c.label}</div></th>`; });
-    html += `<th>Model</th><th>Observations</th></tr></thead><tbody>`;
+    checkCodes.forEach(code => { html += `<th>${code}</th>`; });
+    html += `<th>Model</th></tr></thead><tbody>`;
 
     rows.forEach(g => {
       const latest = g.latest;
@@ -661,7 +712,7 @@ function renderSchedule() {
         const v = latest.checks ? latest.checks[c.key] : '';
         html += `<td class="${v === 'Pass' ? 'cell-pass' : v === 'Fail' ? 'cell-fail' : ''}">${v === 'Pass' ? '✓' : v === 'Fail' ? '✕' : '—'}</td>`;
       });
-      html += `<td style="white-space:nowrap;">${latest.model || '—'}</td><td>${latest.observations || '-'}</td></tr>`;
+      html += `<td style="white-space:nowrap;">${latest.model || '—'}</td></tr>`;
     });
     html += `</tbody></table></div>`;
   });
@@ -681,7 +732,6 @@ function suggestedRetestDue() {
 
 let postcodeArea = '';
 let postcodeCheckTimer = null;
-
 async function checkPostcode() {
   const input = document.getElementById('metaPostcode');
   const status = document.getElementById('postcodeStatus');
@@ -882,7 +932,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   pdf.text('ISOLATOR / INTERLOCK TEST REPORT', pageW - marginX, 45, { align: 'right' });
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
   pdf.setTextColor(110, 110, 110);
-  pdf.text('Isolator, interlock and e-stop testing record', pageW - marginX, 58, { align: 'right' });
+  pdf.text('Isolator, interlock and emergency stop testing record', pageW - marginX, 58, { align: 'right' });
   pdf.text('Report reference: ' + reportRef, pageW - marginX, 70, { align: 'right' });
 
   let y = 95;
@@ -920,6 +970,12 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   y += boxH + 10;
 
   // ---- One landscape table per category, sorted by location ----
+  // Observations are collected here and printed on their own page at the end,
+  // rather than as a column in this grid (keeps the grid within page width and
+  // matches how the EIC reference document separates its test schedule from
+  // its narrative comments).
+  const allObservations = [];
+
   CATEGORY_NAMES.forEach(cat => {
     const def = CATEGORIES[cat];
     let rowsForCat = groups.filter(g => g.latest && g.latest.category === cat);
@@ -930,12 +986,10 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     pageW = pdf.internal.pageSize.getWidth();
     pageH = pdf.internal.pageSize.getHeight();
     let ty = 40;
-    ty = sectionBar(ty, cat, pageW - marginX * 2);
+    ty = sectionBar(ty, SECTION_HEADINGS[cat] || cat, pageW - marginX * 2);
     ty += 10;
     const usableW = pageW - marginX * 2;
 
-    // Columns: location, any other descriptive fields, equipment id, manufacturer,
-    // isolator specs if applicable, coded check columns, model, observations.
     const cols = [{ key: 'location', label: 'Location' }];
     (def.fields || []).forEach(f => { if (f.key !== def.locationKey) cols.push({ key: f.key, label: f.label }); });
     cols.push({ key: 'equipmentId', label: 'Equipment ID', bold: true });
@@ -945,10 +999,9 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       cols.push({ key: 'poles', label: 'Poles' });
       cols.push({ key: 'auxiliary', label: 'Auxiliary' });
     }
-    const checkCols = def.checks.map((c, i) => ({ key: 'check:' + c.key, label: 'C' + (i + 1), check: true, checkLabel: c.label }));
+    const checkCols = def.checks.map((c, i) => ({ key: 'check:' + c.key, label: 'T' + (i + 1), check: true, checkLabel: c.label }));
     cols.push(...checkCols);
     cols.push({ key: 'model', label: 'Model' });
-    cols.push({ key: 'observations', label: 'Observations', flex: true });
 
     function cellValue(latest, eq, c) {
       if (c.key === 'equipmentId') return eq;
@@ -957,30 +1010,45 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       return v !== undefined && v !== '' ? String(v) : '-';
     }
 
-    // Legend for the coded check columns
+    // Legend for the coded check columns, laid out as a clean grid rather than
+    // a single run-on line.
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5); pdf.setTextColor(110, 110, 110);
-    const legendText = checkCols.map(c => c.label + ' = ' + c.checkLabel).join('   ·   ');
-    const legendLines = pdf.splitTextToSize(legendText, usableW);
-    pdf.text(legendLines, marginX, ty);
-    ty += legendLines.length * 9 + 8;
+    const colsPerRow = 2;
+    const legendColW = usableW / colsPerRow;
+    checkCols.forEach((c, i) => {
+      const col = i % colsPerRow, row = Math.floor(i / colsPerRow);
+      const text = c.label + ' — ' + c.checkLabel;
+      const lines = pdf.splitTextToSize(text, legendColW - 10);
+      pdf.text(lines, marginX + col * legendColW, ty + row * (lines.length > 1 ? 18 : 10) + 8);
+    });
+    const legendRows = Math.ceil(checkCols.length / colsPerRow);
+    ty += legendRows * 12 + 12;
 
     // Dynamic column widths based on header + actual content
     pdf.setFontSize(8);
     let sumFixed = 0;
     cols.forEach(c => {
-      if (c.flex) return;
       if (c.check) { c.w = 20; sumFixed += c.w; return; }
       let maxW = pdf.getTextWidth(c.label);
       rowsForCat.forEach(g => {
         const w = pdf.getTextWidth(cellValue(g.latest, g.eq, c));
         if (w > maxW) maxW = w;
       });
-      const cap = (c.key === 'equipmentId' || c.key === 'location') ? 140 : 95;
+      const cap = (c.key === 'equipmentId' || c.key === 'location') ? 140 : 100;
       c.w = Math.min(cap, maxW + 12);
       sumFixed += c.w;
     });
-    const flexCol = cols.find(c => c.flex);
-    flexCol.w = Math.max(85, usableW - sumFixed);
+
+    // Guarantee the whole table actually fits the page width - shrink
+    // non-check columns proportionally if the sum exceeds the usable space.
+    if (sumFixed > usableW) {
+      const shrinkable = cols.filter(c => !c.check);
+      const shrinkableSum = shrinkable.reduce((s, c) => s + c.w, 0);
+      const checkSum = sumFixed - shrinkableSum;
+      const available = usableW - checkSum;
+      const ratio = Math.max(0.5, available / shrinkableSum);
+      shrinkable.forEach(c => { c.w = Math.max(30, Math.round(c.w * ratio)); });
+    }
 
     // Header row
     const headerH = 24;
@@ -992,7 +1060,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       x += c.w;
     });
     pdf.setDrawColor(220, 220, 220);
-    pdf.line(marginX, ty + headerH, marginX + usableW, ty + headerH);
+    pdf.line(marginX, ty + headerH, marginX + cols.reduce((s,c)=>s+c.w,0), ty + headerH);
     ty += headerH + 4;
 
     rowsForCat.forEach((g, idx) => {
@@ -1007,7 +1075,8 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
         pageH = pdf.internal.pageSize.getHeight();
         ty = 40;
       }
-      if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, ty - 3, usableW, rowH, 'F'); }
+      const rowW = cols.reduce((s,c)=>s+c.w,0);
+      if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, ty - 3, rowW, rowH, 'F'); }
 
       x = marginX;
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(40, 40, 40);
@@ -1026,8 +1095,48 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
         x += c.w;
       });
       ty += rowH;
+
+      if (latest.observations) {
+        allObservations.push({ eq: g.eq, category: cat, pass: overallPassOf(latest), text: latest.observations });
+      }
     });
   });
+
+  // ---- Observations page ----
+  if (allObservations.length > 0) {
+    pdf.addPage('a4', 'portrait');
+    pageW = pdf.internal.pageSize.getWidth();
+    pageH = pdf.internal.pageSize.getHeight();
+    let oy = 40;
+    oy = sectionBar(oy, 'Observations', pageW - marginX * 2);
+    oy += 14;
+
+    allObservations.forEach((o, idx) => {
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5); pdf.setTextColor(26, 26, 26);
+      pdf.text(o.eq, marginX, oy);
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(110, 110, 110);
+      pdf.text(o.category, marginX + 200, oy);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(o.pass ? PASS_COLOR[0] : FAIL_COLOR[0], o.pass ? PASS_COLOR[1] : FAIL_COLOR[1], o.pass ? PASS_COLOR[2] : FAIL_COLOR[2]);
+      pdf.text(o.pass ? 'PASS' : 'FAIL', pageW - marginX - 30, oy, { align: 'right' });
+      oy += 13;
+
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
+      const lines = pdf.splitTextToSize(o.text, pageW - marginX * 2);
+      if (oy + lines.length * 11 > pageH - 40) {
+        pdf.addPage('a4', 'portrait');
+        pageW = pdf.internal.pageSize.getWidth();
+        pageH = pdf.internal.pageSize.getHeight();
+        oy = 40;
+      }
+      pdf.text(lines, marginX, oy);
+      oy += lines.length * 11 + 6;
+
+      pdf.setDrawColor(230, 230, 230);
+      pdf.line(marginX, oy, pageW - marginX, oy);
+      oy += 14;
+    });
+  }
 
   const totalPages = pdf.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {

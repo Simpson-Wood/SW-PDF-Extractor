@@ -12,7 +12,7 @@
     --line:#e2e2e2; --bg:#f6f5f4; --card:#ffffff; --pass:#1f8a3d; --fail:#c0272d;
   }
   *{box-sizing:border-box;}
-  body{margin:0;font-family:'Barlow',sans-serif;background:var(--bg);color:var(--ink);padding-bottom:100px;}
+  body{margin:0;font-family:'Barlow',sans-serif;background:var(--bg);color:var(--ink);padding-bottom:40px;}
   header{background:var(--ink);padding:16px 16px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
   header .brand{display:flex;align-items:center;gap:12px;}
   header img{height:32px;display:block;}
@@ -53,8 +53,10 @@
   .radio-opt.pass-sel{border-color:var(--pass);background:#eaf7ee;color:var(--pass);}
   .radio-opt.fail-sel{border-color:var(--fail);background:#fbe9e9;color:var(--fail);}
 
-  .id-preview{background:#f2f2f2;border:1.5px dashed var(--line);border-radius:7px;padding:10px 11px;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:14px;min-height:20px;}
-  .id-preview.pending{color:var(--grey);font-weight:400;font-style:italic;}
+  .id-preview{background:#f2f2f2;border:1.5px dashed var(--line);border-radius:7px;padding:10px 11px;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px;min-height:20px;letter-spacing:.02em;}
+  .id-preview.pending{color:var(--grey);font-weight:400;font-style:italic;font-size:13px;}
+  .id-note{font-size:11px;color:var(--grey);margin:0 0 14px;}
+  .id-note.retest{color:var(--red);font-weight:600;}
 
   .check-item{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:9px 0;flex-wrap:wrap;}
   .check-item:first-child{border-top:none;padding-top:0;}
@@ -62,6 +64,7 @@
   .check-item .error-msg{width:100%;margin:2px 0 0;}
 
   .entry{border:1.5px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+  .entry.saved{opacity:.6;}
   .entry-head{background:var(--ink);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .entry-head .tag{background:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;flex-shrink:0;}
   .entry-head .eq-id{font-weight:600;font-size:13px;flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -71,16 +74,17 @@
   .add-btn{width:100%;padding:13px;background:#fff;border:2px dashed var(--red);color:var(--red);border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;margin-bottom:6px;}
   .empty-note{text-align:center;color:var(--grey);font-size:13.5px;padding:18px 0;}
 
-  .footer-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));}
-  .footer-bar .inner{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center;}
-  .footer-bar .count{font-size:12.5px;color:var(--grey);flex:1;}
-  .submit-btn{background:var(--red);color:#fff;border:none;padding:13px 22px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;}
-  .submit-btn:disabled{background:#c9a3a5;cursor:not-allowed;}
-  .submit-btn:active{background:var(--red-dark);}
+  .save-entry-btn{width:100%;padding:12px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;margin-top:6px;}
+  .save-entry-btn:disabled{background:#c9a3a5;cursor:not-allowed;}
 
   .banner{display:none;padding:12px 14px;border-radius:8px;font-size:13.5px;font-weight:600;margin-bottom:14px;}
   .banner.ok{background:#eaf7ee;color:var(--pass);border:1px solid #b9e2c4;}
   .banner.bad{background:#fbe9e9;color:var(--fail);border:1px solid #f0bcbe;}
+
+  .today-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid var(--line);}
+  .today-item:first-child{border-top:none;}
+  .today-item .id{font-weight:700;font-size:13.5px;}
+  .today-item .cat{font-size:11px;color:var(--grey);}
 
   #signinScreen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--bg);}
   #signinScreen img{height:44px;margin-bottom:28px;}
@@ -135,7 +139,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Test</h1>
-        <p id="versionLabel">v9.0</p>
+        <p id="versionLabel">v10.0</p>
       </div>
     </div>
     <div class="who">
@@ -163,6 +167,7 @@
 
     <div id="banner" class="banner"></div>
 
+    <!-- LOG TEST TAB -->
     <div id="logTab">
       <div class="card">
         <p class="section-label">Visit details</p>
@@ -170,14 +175,20 @@
         <input type="date" id="visitDate" required>
       </div>
 
+      <div class="card" id="todayCard" style="display:none;">
+        <p class="section-label">Tests completed today</p>
+        <div id="todayList"></div>
+      </div>
+
       <div class="card">
-        <p class="section-label">Isolator / Interlock entries</p>
+        <p class="section-label">Log an isolator / interlock</p>
         <div id="entries"></div>
-        <div class="empty-note" id="emptyNote">No entries added yet</div>
+        <div class="empty-note" id="emptyNote">No entry in progress</div>
         <button type="button" class="add-btn" id="addEntryBtn">+ Add Isolator / Interlock</button>
       </div>
     </div>
 
+    <!-- REGISTER TAB -->
     <div id="regTab" style="display:none;">
       <div class="card">
         <p class="section-label">Site register</p>
@@ -187,13 +198,6 @@
     </div>
 
   </main>
-
-  <div class="footer-bar" id="footerBar">
-    <div class="inner">
-      <span class="count" id="entryCount">0 entries ready to submit</span>
-      <button class="submit-btn" id="submitBtn">Submit</button>
-    </div>
-  </div>
 </div>
 
 <datalist id="dl-panelName"></datalist>
@@ -216,7 +220,7 @@ import {
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const VERSION = "v9.0";
+const VERSION = "v10.0";
 document.getElementById('versionLabel').textContent = VERSION + ' · Log one or more tests for this visit';
 console.log('Isolator/Interlock tool', VERSION);
 
@@ -235,40 +239,31 @@ const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' });
 
-// Power Automate flow that just sends an email — fires only when a submission
-// genuinely fails while online, not for normal offline queuing (which resolves
-// on its own once Firestore reconnects). Replace once the flow is built.
 const ALERT_FLOW_URL = "REPLACE_WITH_ALERT_FLOW_URL";
-
 function reportSubmissionFailure(err, context) {
   console.error('Submission failed:', err, context);
-  if (!navigator.onLine) return; // offline write, still queued - not a real failure yet
+  if (!navigator.onLine) return;
   if (ALERT_FLOW_URL.startsWith("REPLACE")) return;
   fetch(ALERT_FLOW_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      tool: 'isolator-interlock-test',
-      errorCode: err.code || '',
-      errorMessage: err.message || String(err),
-      site: context.siteName || '',
-      engineer: context.engineer || '',
-      equipmentId: context.equipmentId || '',
+      tool: 'isolator-interlock-test', errorCode: err.code || '', errorMessage: err.message || String(err),
+      site: context.siteName || '', engineer: context.engineer || '', equipmentId: context.equipmentId || '',
       timestamp: new Date().toISOString()
     })
-  }).catch(() => {}); // if the alert itself fails, nothing more we can do client-side
+  }).catch(() => {});
 }
 
 // ---------------------------------------------------------------
-// Category definitions: descriptive fields (feed the auto-ID and
-// suggestions) + the Pass/Fail checklist specific to that category.
+// Category definitions
 // ---------------------------------------------------------------
 const CATEGORIES = {
   'Panel Isolator': {
     fields: [
-      { key: 'panelName', label: 'Panel Name', hint: 'E.g. Press line 1 routing', dl: 'panelName' }
+      { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
+      { key: 'panelName', label: 'Panel Name', hint: 'E.g. Routing panel, Main panel', dl: 'panelName' }
     ],
-    idFields: ['panelName'], idSuffix: 'Isolator', hasIsolatorSpecs: true,
+    locationKey: 'millLocation', idMode: 'letter', suffix: 'PI', hasIsolatorSpecs: true,
     checks: [
       { key: 'operation', label: 'Operation' },
       { key: 'guards', label: 'All guards & shields in place' },
@@ -281,9 +276,9 @@ const CATEGORIES = {
   'Motor Isolator': {
     fields: [
       { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
-      { key: 'equipmentName', label: 'Equipment Name', hint: 'E.g. Press 1 press motor 1, E1, C16', dl: 'equipmentName' }
+      { key: 'equipmentName', label: 'Equipment Name', hint: 'E.g. C12, C16, M1 — becomes part of the short ID', dl: 'equipmentName' }
     ],
-    idFields: ['millLocation', 'equipmentName'], idSuffix: 'Isolator', hasIsolatorSpecs: true,
+    locationKey: 'millLocation', idMode: 'tag', tagField: 'equipmentName', suffix: 'MI', hasIsolatorSpecs: true,
     checks: [
       { key: 'operation', label: 'Operation' },
       { key: 'handleCondition', label: 'Handle in good condition' },
@@ -296,14 +291,14 @@ const CATEGORIES = {
       { key: 'cablesGlandsWiring', label: 'Cables, glands, wiring and mounting secure' }
     ]
   },
-  'E-Stop': {
+  'Emergency Stop': {
     fields: [
       { key: 'millLocation', label: 'Mill Location', hint: 'E.g. Press line 1, Blending, Intake', dl: 'millLocation' },
       { key: 'physicalLocation', label: 'Physical Location', hint: 'E.g. Press line 1 press deck, Press line 1 main panel', dl: 'physicalLocation' },
       { key: 'relayLocation', label: 'Location of Safety Relay', hint: 'E.g. Press line 1 press panel, Press line 1 routing panel', dl: 'relayLocation' },
       { key: 'equipmentAffected', label: 'Equipment Affected When Pressed', hint: 'E.g. Press only, All press routing', dl: 'equipmentAffected' }
     ],
-    idFields: ['millLocation', 'physicalLocation'], idSuffix: 'E-Stop',
+    locationKey: 'millLocation', idMode: 'letter', suffix: 'ES',
     checks: [
       { key: 'buttonOperation', label: 'Button operation' },
       { key: 'shroudLabel', label: 'Shroud and/or label in correct position' },
@@ -323,7 +318,7 @@ const CATEGORIES = {
       { key: 'physicalLocation', label: 'Physical Location', hint: 'E.g. Press line 1 press door, Press line 1 conditioner 1', dl: 'physicalLocation' },
       { key: 'equipmentAffected', label: 'Equipment Affected', hint: 'E.g. Press only, All press routing', dl: 'equipmentAffected' }
     ],
-    idFields: ['millLocation', 'physicalLocation'], idSuffix: 'Interlock',
+    locationKey: 'millLocation', idMode: 'letter', suffix: 'SI',
     checks: [
       { key: 'mounted', label: 'Interlock correctly mounted and secure' },
       { key: 'channelsDisconnect', label: 'Do both safety channels disconnect' },
@@ -340,76 +335,74 @@ const CATEGORIES = {
   }
 };
 const CATEGORY_NAMES = Object.keys(CATEGORIES);
-const PHOTO_TARGET_BYTES = 200000; // ~200KB per photo after compression
-
-function compressImage(file, targetBytes) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let maxDim = 1280;
-      let quality = 0.75;
-
-      function render() {
-        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
-        const w = Math.round(img.naturalWidth * scale);
-        const h = Math.round(img.naturalHeight * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        return canvas.toDataURL('image/jpeg', quality);
-      }
-
-      let dataUrl = render();
-      let attempts = 0;
-      // Roughly reverse the base64 overhead (x0.75) to estimate real byte size,
-      // shrinking quality then dimensions in steps, capped so it can't loop forever.
-      while (dataUrl.length * 0.75 > targetBytes && attempts < 6) {
-        if (quality > 0.4) quality -= 0.15; else maxDim = Math.round(maxDim * 0.8);
-        dataUrl = render();
-        attempts++;
-      }
-      resolve(dataUrl.split(',')[1]);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image')); };
-    img.src = url;
-  });
-}
 const DUE_DAYS = 365;
 const AUX_OPTIONS = ['No', '1 N/O', '1 N/O & 1 N/C', '1 N/C'];
 
+const LOCATION_CODES = {
+  'Press line 1': 'PL1', 'Press line 2': 'PL2', 'Press line 3': 'PL3', 'Press line 4': 'PL4',
+  'Intake': 'INT', 'Front outloading': 'FOL', 'Rear outloading': 'ROL', 'Blending': 'BLD',
+  'Routing': 'RTG', 'Mixing': 'MIX', 'Mixer 1': 'MX1', 'Mixer 2': 'MX2', 'Packing': 'PKG',
+  'Weigher 1': 'WG1', 'Weigher 2': 'WG2', 'Weigher 3': 'WG3', 'Weigher 4': 'WG4', 'Weigher 5': 'WG5',
+  'Weigher 6': 'WG6', 'Weigher 7': 'WG7', 'Weigher 8': 'WG8', 'Weigher 9': 'WG9',
+  'Grinder 1': 'GR1', 'Grinder 2': 'GR2', 'Grinder 3': 'GR3',
+  'Mixing shed mixer 1': 'MSM1', 'Mixing shed mixer 2': 'MSM2'
+};
+
+function locationCode(name) {
+  if (!name) return '';
+  const trimmed = name.trim();
+  if (LOCATION_CODES[trimmed]) return LOCATION_CODES[trimmed];
+  const words = trimmed.split(/\s+/);
+  let code = words.length === 1 ? words[0].slice(0, 4) : words.map(w => w[0]).join('').slice(0, 4);
+  return code.toUpperCase();
+}
+
+function letterFromIndex(i) {
+  let s = ''; i++;
+  while (i > 0) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); }
+  return s;
+}
+
+function computeLetterId(category, locCode) {
+  const def = CATEGORIES[category];
+  const escaped = locCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('^' + escaped + '-([A-Z]+)-' + def.suffix + '$');
+  const used = new Set();
+  siteHistoryCache.forEach(d => {
+    if (d.category === category && d.equipmentId) {
+      const m = d.equipmentId.match(re);
+      if (m) used.add(m[1]);
+    }
+  });
+  let idx = 0;
+  while (used.has(letterFromIndex(idx))) idx++;
+  return locCode + '-' + letterFromIndex(idx) + '-' + def.suffix;
+}
+
+function computeTagId(category, locCode, tag) {
+  const def = CATEGORIES[category];
+  if (!tag) return '';
+  return locCode + '-' + tag.trim().toUpperCase().replace(/\s+/g, '') + '-' + def.suffix;
+}
+
+function computeEquipmentId(category, values) {
+  const def = CATEGORIES[category];
+  if (!def) return '';
+  const locName = values[def.locationKey];
+  if (!locName) return '';
+  const locCode = locationCode(locName);
+  if (def.idMode === 'tag') {
+    const tag = values[def.tagField];
+    return tag ? computeTagId(category, locCode, tag) : '';
+  }
+  return computeLetterId(category, locCode);
+}
+
 let currentUser = null;
 let entryCounter = 0;
-const entries = {}; // id -> {photoBase64, photoName}
+const entries = {};
 let siteHistoryCache = [];
-let activeRegTab = 'All';
-let expandedEquip = new Set();
-
-async function flagForDeletion(docId) {
-  if (!confirm('Flag this test as incorrect / for deletion? It stays on record but is hidden from the active register until a manager confirms removal.')) return;
-  try {
-    await updateDoc(doc(db, 'isolatorTests', docId), {
-      deletedFlag: true,
-      deletedBy: currentUser.displayName || currentUser.email,
-      deletedAt: serverTimestamp()
-    });
-    await loadSiteData();
-    renderRegister();
-  } catch (e) {
-    alert('Could not flag — ' + (e.message || e.code || 'unknown error'));
-  }
-}
-
-async function unflagDeletion(docId) {
-  try {
-    await updateDoc(doc(db, 'isolatorTests', docId), { deletedFlag: false });
-    await loadSiteData();
-    renderRegister();
-  } catch (e) {
-    alert('Could not restore — ' + (e.message || e.code || 'unknown error'));
-  }
-}
+let todaysTests = []; // { equipmentId, category } - this session only
 
 // ---- Sign-in ----
 function describeAuthError(err) {
@@ -423,9 +416,7 @@ document.getElementById('msSignInBtn').addEventListener('click', () => {
   errBox.textContent = '';
   signInWithPopup(auth, msProvider).catch(err => {
     if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
-      signInWithRedirect(auth, msProvider).catch(err2 => {
-        const msg = describeAuthError(err2); if (msg) errBox.textContent = msg;
-      });
+      signInWithRedirect(auth, msProvider).catch(err2 => { const msg = describeAuthError(err2); if (msg) errBox.textContent = msg; });
       return;
     }
     const msg = describeAuthError(err); if (msg) errBox.textContent = msg;
@@ -451,7 +442,6 @@ onAuthStateChanged(auth, (user) => {
 function boot() {
   document.getElementById('visitDate').valueAsDate = new Date();
   loadSites();
-  rebuildSuggestions();
   if (document.querySelectorAll('.entry').length === 0) addEntry();
   buildRegSubtabs();
 }
@@ -462,7 +452,6 @@ document.getElementById('tabRegBtn').addEventListener('click', () => switchTab('
 function switchTab(which) {
   document.getElementById('logTab').style.display = which === 'log' ? 'block' : 'none';
   document.getElementById('regTab').style.display = which === 'reg' ? 'block' : 'none';
-  document.getElementById('footerBar').style.display = which === 'log' ? 'block' : 'none';
   document.getElementById('tabLogBtn').classList.toggle('active', which === 'log');
   document.getElementById('tabRegBtn').classList.toggle('active', which === 'reg');
   if (which === 'reg') renderRegister();
@@ -484,8 +473,7 @@ async function loadSites() {
       snap.forEach(docSnap => {
         const d = docSnap.data();
         const opt = document.createElement('option');
-        opt.value = docSnap.id;
-        opt.textContent = d.name || docSnap.id;
+        opt.value = docSnap.id; opt.textContent = d.name || docSnap.id;
         siteSelect.appendChild(opt);
       });
     }
@@ -494,9 +482,9 @@ async function loadSites() {
   }
 }
 document.getElementById('site').addEventListener('change', () => {
-  loadSiteData().then(() => {
-    if (document.getElementById('regTab').style.display !== 'none') renderRegister();
-  });
+  todaysTests = [];
+  renderTodayList();
+  loadSiteData();
 });
 
 async function loadSiteData() {
@@ -504,23 +492,15 @@ async function loadSiteData() {
   siteHistoryCache = [];
   if (!siteRef) return;
   try {
-    const q = query(
-      collection(db, 'isolatorTests'),
-      where('siteRef', '==', siteRef),
-      orderBy('equipmentId'),
-      orderBy('date')
-    );
+    const q = query(collection(db, 'isolatorTests'), where('siteRef', '==', siteRef), orderBy('equipmentId'), orderBy('date'));
     const snap = await getDocs(q);
     snap.forEach(docSnap => siteHistoryCache.push({ _id: docSnap.id, ...docSnap.data() }));
     rebuildSuggestions();
   } catch (e) {
     console.error('Site data load failed:', e);
-    document.getElementById('regList').innerHTML =
-      '<div class="history-empty">Could not load site data — ' + (e.message || e.code || 'unknown error') + '</div>';
   }
 }
 
-// Starting suggestions so common values show up even with zero history yet.
 const SEED_SUGGESTIONS = {
   millLocation: [
     'Press line 1', 'Press line 2', 'Press line 3', 'Press line 4',
@@ -548,28 +528,38 @@ function rebuildSuggestions() {
 }
 
 function overallPassOf(record) {
-  if (record.checks && Object.keys(record.checks).length) {
-    return Object.values(record.checks).every(v => v === 'Pass');
-  }
-  if (record.opDevice || record.opControls) return record.opDevice === 'Pass' && record.opControls === 'Pass';
+  if (record.checks && Object.keys(record.checks).length) return Object.values(record.checks).every(v => v === 'Pass');
   return true;
+}
+
+// ---- Today's tests list ----
+function renderTodayList() {
+  const card = document.getElementById('todayCard');
+  const list = document.getElementById('todayList');
+  if (todaysTests.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = todaysTests.map(t => `
+    <div class="today-item"><span class="id">${t.equipmentId}</span><span class="cat">${t.category}</span></div>
+  `).join('');
 }
 
 // ---- Register ----
 function buildRegSubtabs() {
   const wrap = document.getElementById('regSubtabs');
   const tabs = ['All', ...CATEGORY_NAMES];
-  wrap.innerHTML = tabs.map(t => `<button data-tab="${t}" class="${t === activeRegTab ? 'active' : ''}">${t}</button>`).join('');
+  wrap.innerHTML = tabs.map(t => `<button data-tab="${t}" class="${t === 'All' ? 'active' : ''}">${t}</button>`).join('');
   wrap.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
-      activeRegTab = btn.dataset.tab;
       wrap.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-      renderRegister();
+      renderRegister(btn.dataset.tab);
     });
   });
 }
 
-function renderRegister() {
+let expandedEquip = new Set();
+
+function renderRegister(activeTab) {
+  activeTab = activeTab || 'All';
   const list = document.getElementById('regList');
   const siteRef = document.getElementById('site').value;
   if (!siteRef) { list.innerHTML = '<div class="loading-note">Select a site to view its register.</div>'; return; }
@@ -586,7 +576,7 @@ function renderRegister() {
     const active = hist.filter(h => !h.deletedFlag);
     return { eq, hist, active, latest: active.length ? active[active.length - 1] : null };
   }).filter(g => g.latest || g.hist.some(h => h.deletedFlag));
-  if (activeRegTab !== 'All') groups = groups.filter(g => (g.latest ? g.latest.category : g.hist[g.hist.length-1].category) === activeRegTab);
+  if (activeTab !== 'All') groups = groups.filter(g => (g.latest ? g.latest.category : g.hist[g.hist.length-1].category) === activeTab);
   groups.sort((a, b) => a.eq.localeCompare(b.eq));
 
   if (groups.length === 0) { list.innerHTML = '<div class="history-empty">Nothing in this category yet.</div>'; return; }
@@ -672,16 +662,25 @@ function renderRegister() {
     btn.addEventListener('click', () => {
       const eq = btn.dataset.eq;
       if (expandedEquip.has(eq)) expandedEquip.delete(eq); else expandedEquip.add(eq);
-      renderRegister();
+      renderRegister(activeTab);
     });
   });
   list.querySelectorAll('.del-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.action === 'restore') unflagDeletion(btn.dataset.docId);
-      else flagForDeletion(btn.dataset.docId);
+    btn.addEventListener('click', async () => {
+      try {
+        if (btn.dataset.action === 'restore') {
+          await updateDoc(doc(db, 'isolatorTests', btn.dataset.docId), { deletedFlag: false });
+        } else {
+          if (!confirm('Flag this test as incorrect / for deletion? It stays on record but is hidden from the active register until a manager confirms removal.')) return;
+          await updateDoc(doc(db, 'isolatorTests', btn.dataset.docId), {
+            deletedFlag: true, deletedBy: currentUser.displayName || currentUser.email, deletedAt: serverTimestamp()
+          });
+        }
+        await loadSiteData();
+        renderRegister(activeTab);
+      } catch (e) { alert('Could not update — ' + (e.message || e.code || 'unknown error')); }
     });
   });
-
   list.querySelectorAll('.retest-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const eq = btn.dataset.eq;
@@ -695,26 +694,36 @@ function renderRegister() {
   });
 }
 
-// ---- Equipment ID auto-generation ----
-function computeEquipmentId(category, values) {
-  const def = CATEGORIES[category];
-  if (!def) return '';
-  const parts = def.idFields.map(k => (values[k] || '').trim()).filter(Boolean);
-  if (parts.length < def.idFields.length) return '';
-  return parts.join(' ') + ' ' + def.idSuffix;
-}
-
+// ---- Equipment ID preview ----
 function refreshIdPreview(wrap) {
   const category = wrap.querySelector('[data-field="category"]').value;
   const def = CATEGORIES[category];
-  const values = {};
-  if (def) def.fields.forEach(f => { values[f.key] = (wrap.querySelector(`[data-field="${f.key}"]`) || {}).value || ''; });
-  const id = computeEquipmentId(category, values);
   const preview = wrap.querySelector('[data-role="idPreview"]');
   const label = wrap.querySelector('[data-role="eqlabel"]');
+  const note = wrap.querySelector('[data-role="idNote"]');
+  const lockedId = wrap.dataset.lockedId;
+
+  if (lockedId) {
+    preview.textContent = lockedId; preview.classList.remove('pending');
+    label.textContent = lockedId;
+    note.textContent = 'Retest — ID kept the same as the original.';
+    note.classList.add('retest');
+    return lockedId;
+  }
+  note.textContent = ''; note.classList.remove('retest');
+
+  if (!def) {
+    preview.textContent = 'Select a category and fill in the fields above'; preview.classList.add('pending');
+    label.textContent = 'New entry';
+    return '';
+  }
+  const values = {};
+  def.fields.forEach(f => { values[f.key] = (wrap.querySelector(`[data-field="${f.key}"]`) || {}).value || ''; });
+  const id = computeEquipmentId(category, values);
   if (id) {
     preview.textContent = id; preview.classList.remove('pending');
     label.textContent = id;
+    if (def.idMode === 'letter') note.textContent = 'Auto-assigned — next available at this location.';
   } else {
     preview.textContent = 'Fill in the fields above to generate the Equipment ID'; preview.classList.add('pending');
     label.textContent = 'New entry';
@@ -801,6 +810,34 @@ function updateActionConstraint(wrap) {
   wrap.querySelector('[data-role="internalsReq"]').style.display = anyFail ? 'inline' : 'none';
 }
 
+const PHOTO_TARGET_BYTES = 200000;
+function compressImage(file, targetBytes) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let maxDim = 1280, quality = 0.75;
+      function render() {
+        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        return canvas.toDataURL('image/jpeg', quality);
+      }
+      let dataUrl = render(), attempts = 0;
+      while (dataUrl.length * 0.75 > targetBytes && attempts < 6) {
+        if (quality > 0.4) quality -= 0.15; else maxDim = Math.round(maxDim * 0.8);
+        dataUrl = render(); attempts++;
+      }
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image')); };
+    img.src = url;
+  });
+}
+
 function addEntry(prefill) {
   entryCounter++;
   const id = 'e' + entryCounter;
@@ -809,16 +846,17 @@ function addEntry(prefill) {
   const wrap = document.createElement('div');
   wrap.className = 'entry';
   wrap.id = id;
+  if (prefill && prefill.equipmentId) wrap.dataset.lockedId = prefill.equipmentId;
   wrap.innerHTML = `
     <div class="entry-head">
-      <span class="tag">Entry ${entryCounter}</span>
+      <span class="tag">${prefill ? 'Retest' : 'New'}</span>
       <span class="eq-id" data-role="eqlabel">${prefill ? prefill.equipmentId : 'New entry'}</span>
-      <button type="button" data-role="remove">Remove</button>
+      <button type="button" data-role="remove">Cancel</button>
     </div>
     <div class="entry-body">
 
       <label>Category <span class="req">*</span></label>
-      <select data-field="category">
+      <select data-field="category" ${prefill ? 'disabled' : ''}>
         <option value="" ${!prefill ? 'disabled selected' : ''}>Select category</option>
         ${CATEGORY_NAMES.map(c => `<option ${prefill && prefill.category === c ? 'selected' : ''}>${c}</option>`).join('')}
       </select>
@@ -828,6 +866,7 @@ function addEntry(prefill) {
 
       <label>Equipment ID <span class="hint" style="display:inline;">(generated automatically)</span></label>
       <div class="id-preview pending" data-role="idPreview">Select a category and fill in the fields above</div>
+      <p class="id-note" data-role="idNote"></p>
 
       <div data-role="isolatorSpecs"></div>
 
@@ -865,6 +904,8 @@ function addEntry(prefill) {
       <label>Photo of internals <span class="req" data-role="internalsReq" style="display:none;">*</span><span class="hint">E.g. main switch body, E-stop contacts — makes sourcing a replacement part easier without a second visit. Required if further action is needed.</span></label>
       <input type="file" accept="image/*" capture="environment" data-field="photoInternals">
       <div class="error-msg" data-error-for="photoInternals">A photo of the internals is required when further action is needed</div>
+
+      <button type="button" class="save-entry-btn" data-role="saveEntry">Save this test</button>
     </div>
   `;
 
@@ -874,13 +915,15 @@ function addEntry(prefill) {
   renderCategoryFields(wrap, prefill ? prefill.category : '', prefill);
 
   wrap.querySelector('[data-role="remove"]').addEventListener('click', () => {
-    wrap.remove(); delete entries[id]; updateCount();
-    if (Object.keys(entries).length === 0) document.getElementById('emptyNote').style.display = 'block';
+    wrap.remove(); delete entries[id];
+    if (document.querySelectorAll('.entry').length === 0) document.getElementById('emptyNote').style.display = 'block';
   });
 
-  wrap.querySelector('[data-field="category"]').addEventListener('change', (e) => {
-    renderCategoryFields(wrap, e.target.value);
-  });
+  if (!prefill) {
+    wrap.querySelector('[data-field="category"]').addEventListener('change', (e) => {
+      renderCategoryFields(wrap, e.target.value);
+    });
+  }
 
   wrap.querySelector('[data-field="photo"]').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -906,113 +949,97 @@ function addEntry(prefill) {
     }
   });
 
-  updateCount();
+  wrap.querySelector('[data-role="saveEntry"]').addEventListener('click', () => saveEntry(wrap, id));
 }
 document.getElementById('addEntryBtn').addEventListener('click', () => addEntry());
 
-function updateCount() {
-  const n = document.querySelectorAll('.entry').length;
-  document.getElementById('entryCount').textContent = `${n} ${n === 1 ? 'entry' : 'entries'} ready to submit`;
-}
-
-// ---- Validation + collection ----
-function collectAndValidate() {
+// ---- Validation for a single entry ----
+function validateEntry(wrap, id) {
   let valid = true;
-  const collected = [];
+  const get = sel => wrap.querySelector(sel);
+  const val = f => { const el = get(`[data-field="${f}"]`); return el ? el.value.trim() : ''; };
+  const mark = (el, ok) => {
+    const errEl = el.nextElementSibling && el.nextElementSibling.classList.contains('error-msg') ? el.nextElementSibling : null;
+    el.classList.toggle('field-error', !ok);
+    if (errEl) errEl.style.display = ok ? 'none' : 'block';
+    if (!ok) valid = false;
+  };
 
-  document.querySelectorAll('.entry').forEach(wrap => {
-    const get = sel => wrap.querySelector(sel);
-    const val = f => { const el = get(`[data-field="${f}"]`); return el ? el.value.trim() : ''; };
-    const mark = (el, ok) => {
-      const errEl = el.nextElementSibling && el.nextElementSibling.classList.contains('error-msg') ? el.nextElementSibling : null;
-      el.classList.toggle('field-error', !ok);
-      if (errEl) errEl.style.display = ok ? 'none' : 'block';
-      if (!ok) valid = false;
-    };
+  const category = val('category');
+  const def = CATEGORIES[category];
+  const record = { category, action: val('action'), manufacturer: val('manufacturer'), model: val('model'),
+    partNumber: val('partNumber'), observations: val('observations'), checks: {} };
 
-    const category = val('category');
-    const def = CATEGORIES[category];
-    const record = { category, action: val('action'), manufacturer: val('manufacturer'), model: val('model'),
-      partNumber: val('partNumber'), observations: val('observations'), checks: {} };
+  mark(get('[data-field="category"]'), !!category);
+  mark(get('[data-field="manufacturer"]'), !!record.manufacturer);
+  mark(get('[data-field="model"]'), !!record.model);
+  mark(get('[data-field="partNumber"]'), !!record.partNumber);
 
-    mark(get('[data-field="category"]'), !!category);
-    mark(get('[data-field="manufacturer"]'), !!record.manufacturer);
-    mark(get('[data-field="model"]'), !!record.model);
-    mark(get('[data-field="partNumber"]'), !!record.partNumber);
+  if (def && def.hasIsolatorSpecs) {
+    record.currentRating = val('currentRating'); record.poles = val('poles'); record.auxiliary = val('auxiliary');
+    mark(get('[data-field="currentRating"]'), !!record.currentRating);
+    mark(get('[data-field="poles"]'), !!record.poles);
+    mark(get('[data-field="auxiliary"]'), !!record.auxiliary);
+  }
 
-    if (def && def.hasIsolatorSpecs) {
-      record.currentRating = val('currentRating');
-      record.poles = val('poles');
-      record.auxiliary = val('auxiliary');
-      mark(get('[data-field="currentRating"]'), !!record.currentRating);
-      mark(get('[data-field="poles"]'), !!record.poles);
-      mark(get('[data-field="auxiliary"]'), !!record.auxiliary);
-    }
+  const fieldValues = {};
+  (def ? def.fields : []).forEach(f => {
+    const v = val(f.key);
+    fieldValues[f.key] = v;
+    const el = get(`[data-field="${f.key}"]`);
+    if (el) mark(el, !!v);
+  });
+  record.equipmentId = wrap.dataset.lockedId || computeEquipmentId(category, fieldValues);
+  Object.assign(record, fieldValues);
+  if (def && !record.equipmentId) valid = false;
 
-    const fieldValues = {};
-    (def ? def.fields : []).forEach(f => {
-      const v = val(f.key);
-      fieldValues[f.key] = v;
-      const el = get(`[data-field="${f.key}"]`);
-      if (el) mark(el, !!v);
-    });
-    record.equipmentId = computeEquipmentId(category, fieldValues);
-    Object.assign(record, fieldValues);
-    if (def && !record.equipmentId) valid = false;
-
-    let anyFail = false;
-    (def ? def.checks : []).forEach(c => {
-      const group = wrap.querySelector(`[data-check="${c.key}"]`);
-      const v = group ? group.getAttribute('data-value-selected') : '';
-      record.checks[c.key] = v || '';
-      const errEl = wrap.querySelector(`[data-error-for="check-${c.key}"]`);
-      const ok = !!v;
-      if (errEl) errEl.style.display = ok ? 'none' : 'block';
-      if (!ok) valid = false;
-      if (v === 'Fail') anyFail = true;
-    });
-
-    const actionOk = record.action && !(anyFail && record.action === 'No');
-    const actionErrEl = wrap.querySelector('[data-error-for="action"]');
-    get('[data-field="action"]').classList.toggle('field-error', !actionOk);
-    if (actionErrEl) actionErrEl.style.display = actionOk ? 'none' : 'block';
-    if (!actionOk) valid = false;
-
-    const id = wrap.id;
-    record.photoBase64 = entries[id] ? (entries[id].photoBase64 || null) : null;
-    const photoErrEl = wrap.querySelector('[data-error-for="photo"]');
-    const photoOk = !!record.photoBase64;
-    if (photoErrEl) { photoErrEl.textContent = 'A photo is required'; photoErrEl.style.display = photoOk ? 'none' : 'block'; }
-    if (!photoOk) valid = false;
-    if (record.photoBase64 && record.photoBase64.length > 400000) {
-      record.photoBase64 = null;
-      if (photoErrEl) { photoErrEl.textContent = 'Photo file is too large even after compression — try a different photo'; photoErrEl.style.display = 'block'; }
-      valid = false;
-    }
-
-    record.photoInternalsBase64 = entries[id] ? (entries[id].photoInternalsBase64 || null) : null;
-    const photoIntErrEl = wrap.querySelector('[data-error-for="photoInternals"]');
-    if (anyFail) {
-      const photoIntOk = !!record.photoInternalsBase64;
-      if (photoIntErrEl) { photoIntErrEl.textContent = 'A photo of the internals is required when further action is needed'; photoIntErrEl.style.display = photoIntOk ? 'none' : 'block'; }
-      if (!photoIntOk) valid = false;
-    } else if (photoIntErrEl) {
-      photoIntErrEl.style.display = 'none';
-    }
-    if (record.photoInternalsBase64 && record.photoInternalsBase64.length > 400000) {
-      record.photoInternalsBase64 = null;
-      if (photoIntErrEl) { photoIntErrEl.textContent = 'Photo file is too large even after compression — try a different photo'; photoIntErrEl.style.display = 'block'; }
-      valid = false;
-    }
-
-    collected.push(record);
+  let anyFail = false;
+  (def ? def.checks : []).forEach(c => {
+    const group = wrap.querySelector(`[data-check="${c.key}"]`);
+    const v = group ? group.getAttribute('data-value-selected') : '';
+    record.checks[c.key] = v || '';
+    const errEl = wrap.querySelector(`[data-error-for="check-${c.key}"]`);
+    const ok = !!v;
+    if (errEl) errEl.style.display = ok ? 'none' : 'block';
+    if (!ok) valid = false;
+    if (v === 'Fail') anyFail = true;
   });
 
-  return { valid, collected };
+  const actionOk = record.action && !(anyFail && record.action === 'No');
+  const actionErrEl = wrap.querySelector('[data-error-for="action"]');
+  get('[data-field="action"]').classList.toggle('field-error', !actionOk);
+  if (actionErrEl) actionErrEl.style.display = actionOk ? 'none' : 'block';
+  if (!actionOk) valid = false;
+
+  record.photoBase64 = entries[id] ? (entries[id].photoBase64 || null) : null;
+  const photoErrEl = wrap.querySelector('[data-error-for="photo"]');
+  const photoOk = !!record.photoBase64;
+  if (photoErrEl) { photoErrEl.textContent = 'A photo is required'; photoErrEl.style.display = photoOk ? 'none' : 'block'; }
+  if (!photoOk) valid = false;
+  if (record.photoBase64 && record.photoBase64.length > 400000) {
+    record.photoBase64 = null;
+    if (photoErrEl) { photoErrEl.textContent = 'Photo file is too large even after compression — try a different photo'; photoErrEl.style.display = 'block'; }
+    valid = false;
+  }
+
+  record.photoInternalsBase64 = entries[id] ? (entries[id].photoInternalsBase64 || null) : null;
+  const photoIntErrEl = wrap.querySelector('[data-error-for="photoInternals"]');
+  if (anyFail) {
+    const photoIntOk = !!record.photoInternalsBase64;
+    if (photoIntErrEl) { photoIntErrEl.textContent = 'A photo of the internals is required when further action is needed'; photoIntErrEl.style.display = photoIntOk ? 'none' : 'block'; }
+    if (!photoIntOk) valid = false;
+  } else if (photoIntErrEl) { photoIntErrEl.style.display = 'none'; }
+  if (record.photoInternalsBase64 && record.photoInternalsBase64.length > 400000) {
+    record.photoInternalsBase64 = null;
+    if (photoIntErrEl) { photoIntErrEl.textContent = 'Photo file is too large even after compression — try a different photo'; photoIntErrEl.style.display = 'block'; }
+    valid = false;
+  }
+
+  return { valid, record };
 }
 
-// ---- Submit ----
-document.getElementById('submitBtn').addEventListener('click', async () => {
+// ---- Save a single entry immediately ----
+async function saveEntry(wrap, id) {
   const banner = document.getElementById('banner');
   banner.style.display = 'none';
 
@@ -1021,60 +1048,62 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const siteRef = siteSelect.value;
   const siteName = siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '';
 
-  if (document.querySelectorAll('.entry').length === 0) {
-    banner.className = 'banner bad'; banner.textContent = 'Add at least one isolator/interlock entry before submitting.';
-    banner.style.display = 'block'; return;
-  }
   if (!date || !siteRef) {
     banner.className = 'banner bad'; banner.textContent = 'Date and site are both required.';
     banner.style.display = 'block'; window.scrollTo({top:0, behavior:'smooth'}); return;
   }
 
-  const { valid, collected } = collectAndValidate();
+  const { valid, record } = validateEntry(wrap, id);
   if (!valid) {
     banner.className = 'banner bad'; banner.textContent = 'Please fill in all required fields, highlighted below.';
     banner.style.display = 'block'; return;
   }
 
-  const submitBtn = document.getElementById('submitBtn');
-  submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
+  const saveBtn = wrap.querySelector('[data-role="saveEntry"]');
+  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+
+  const engineer = currentUser.displayName || currentUser.email;
+  const payload = {
+    siteRef, siteName, date, engineer, engineerEmail: currentUser.email,
+    ...record, createdAt: serverTimestamp()
+  };
 
   try {
-    let failureSeen = false;
-    collected.forEach(rec => {
-      addDoc(collection(db, 'isolatorTests'), {
-        siteRef, siteName, date,
-        engineer: currentUser.displayName || currentUser.email,
-        engineerEmail: currentUser.email,
-        ...rec,
-        createdAt: serverTimestamp()
-      }).catch(err => {
-        reportSubmissionFailure(err, { siteName, engineer: currentUser.displayName || currentUser.email, equipmentId: rec.equipmentId });
-        if (navigator.onLine) {
-          failureSeen = true;
-          const banner2 = document.getElementById('banner');
-          banner2.className = 'banner bad';
-          banner2.textContent = `${rec.equipmentId || 'An entry'} failed to save (${err.code || err.message}). The office has been notified — try re-submitting this one.`;
-          banner2.style.display = 'block';
-        }
-      });
-    });
+    await addDoc(collection(db, 'isolatorTests'), payload);
+
+    todaysTests.unshift({ equipmentId: record.equipmentId, category: record.category });
+    renderTodayList();
 
     banner.className = 'banner ok';
-    banner.textContent = `${collected.length} ${collected.length === 1 ? 'entry' : 'entries'} submitted for ${siteName}${!navigator.onLine ? ' — queued, will sync once you\'re back online' : ''}.`;
+    banner.textContent = `${record.equipmentId} saved${!navigator.onLine ? ' — queued, will sync once you\'re back online' : ''}.`;
     banner.style.display = 'block';
     window.scrollTo({top:0, behavior:'smooth'});
 
-    document.getElementById('entries').innerHTML = '';
+    wrap.remove();
+    delete entries[id];
     document.getElementById('emptyNote').style.display = 'block';
+
+    await loadSiteData();
     addEntry();
-    loadSiteData();
-  } catch (e) {
-    banner.className = 'banner bad'; banner.textContent = 'Something went wrong — try again.'; banner.style.display = 'block';
-  } finally {
-    submitBtn.disabled = false; submitBtn.textContent = 'Submit';
+  } catch (err) {
+    reportSubmissionFailure(err, { siteName, engineer, equipmentId: record.equipmentId });
+    saveBtn.disabled = false; saveBtn.textContent = 'Save this test';
+    if (navigator.onLine) {
+      banner.className = 'banner bad';
+      banner.textContent = `${record.equipmentId} failed to save (${err.code || err.message}). The office has been notified — try again.`;
+      banner.style.display = 'block';
+    } else {
+      todaysTests.unshift({ equipmentId: record.equipmentId, category: record.category });
+      renderTodayList();
+      banner.className = 'banner ok';
+      banner.textContent = `${record.equipmentId} queued — will sync once you're back online.`;
+      banner.style.display = 'block';
+      wrap.remove(); delete entries[id];
+      document.getElementById('emptyNote').style.display = 'block';
+      addEntry();
+    }
   }
-});
+}
 </script>
 
 </body>
