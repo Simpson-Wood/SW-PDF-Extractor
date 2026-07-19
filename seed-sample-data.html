@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seed Sample Data — Isolator/Interlock</title>
+<title>Seed Bulk Sample Data — Isolator/Interlock</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   body{font-family:'Barlow',sans-serif;background:#f6f5f4;color:#1a1a1a;max-width:480px;margin:60px auto;padding:0 20px;}
   h1{font-size:18px;}
-  select,button{width:100%;padding:11px;font-size:15px;border-radius:7px;border:1.5px solid #ddd;margin-bottom:12px;font-family:'Barlow',sans-serif;}
+  select,button,input{width:100%;padding:11px;font-size:15px;border-radius:7px;border:1.5px solid #ddd;margin-bottom:12px;font-family:'Barlow',sans-serif;box-sizing:border-box;}
   button{background:#D0222A;color:#fff;border:none;font-weight:700;cursor:pointer;}
   button:disabled{background:#e0a8ab;}
   .ms-btn{background:#1a1a1a;}
@@ -16,21 +16,24 @@
   #signinScreen{display:block;}
   #appRoot{display:none;}
   p.note{font-size:12px;color:#888;}
+  label{font-size:12px;font-weight:600;display:block;margin:0 0 4px;}
 </style>
 </head>
 <body>
 
 <div id="signinScreen">
-  <h1>Seed sample data</h1>
+  <h1>Seed bulk sample data</h1>
   <p class="note">One-off testing tool. Not meant to be linked to from anywhere permanent.</p>
   <button class="ms-btn" id="msSignInBtn">Sign in with Microsoft</button>
   <div id="status"></div>
 </div>
 
 <div id="appRoot">
-  <h1>Seed sample data</h1>
+  <h1>Seed bulk sample data</h1>
   <select id="site"><option value="" disabled selected>Loading sites…</option></select>
-  <button id="seedBtn">Add sample data to this site</button>
+  <label>How many test records to generate</label>
+  <input type="text" id="countInput" value="45">
+  <button id="seedBtn">Generate sample data</button>
   <div id="status"></div>
 </div>
 
@@ -79,62 +82,124 @@ async function loadSites() {
     opt.value = d.id; opt.textContent = d.data().name || d.id;
     sel.appendChild(opt);
   });
-  if (snap.empty) sel.innerHTML = '<option value="">No active sites — add one in Firestore first</option>';
+  if (snap.empty) sel.innerHTML = '<option value="">No active sites — add one on the Sites tab first</option>';
 }
 
-function daysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
+// ---- Matches the schema in isolator-interlock-test.html ----
+const LOCATION_CODES = {
+  'Press line 1': 'PL1', 'Press line 2': 'PL2', 'Press line 3': 'PL3', 'Press line 4': 'PL4',
+  'Intake': 'INT', 'Front outloading': 'FOL', 'Rear outloading': 'ROL', 'Blending': 'BLD',
+  'Routing': 'RTG', 'Mixing': 'MIX', 'Mixer 1': 'MX1', 'Mixer 2': 'MX2', 'Packing': 'PKG',
+  'Weigher 1': 'WG1', 'Weigher 2': 'WG2', 'Weigher 3': 'WG3', 'Weigher 4': 'WG4', 'Weigher 5': 'WG5',
+  'Grinder 1': 'GR1', 'Grinder 2': 'GR2', 'Grinder 3': 'GR3',
+  'Mixing shed mixer 1': 'MSM1', 'Mixing shed mixer 2': 'MSM2'
+};
+const LOCATIONS = Object.keys(LOCATION_CODES);
 
-function sample(siteRef, siteName) {
-  const engineer = currentUser.displayName || currentUser.email;
-  const base = { siteRef, siteName, engineer, engineerEmail: currentUser.email, createdAt: serverTimestamp() };
-  return [
-    { ...base, date: daysAgo(20), category: 'Motor Isolator', equipmentId: 'Press line 1 C12 Isolator',
-      millLocation: 'Press line 1', equipmentName: 'C12', manufacturer: 'Eaton', model: 'Rotary isolator',
-      currentRating: '32A', poles: '3', auxiliary: '1 N/O & 1 N/C', partNumber: 'EA-P1-C12',
-      checks: { operation:'Pass', handleCondition:'Pass', interlock:'Pass', heat:'Pass', enclosure:'Pass', auxContacts:'Pass', labelled:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
-      action: 'No', observations: '', qsed: false },
+const CATEGORY_DEFS = {
+  'Panel Isolator': { suffix: 'PI', idMode: 'letter', hasSpecs: true,
+    checks: ['operation','guards','handle','interlock','heat','connectionsSecure'] },
+  'Motor Isolator': { suffix: 'MI', idMode: 'tag', hasSpecs: true,
+    checks: ['operation','handleCondition','interlock','heat','enclosure','auxContacts','labelled','connectionsSecure','cablesGlandsWiring'] },
+  'Emergency Stop': { suffix: 'ES', idMode: 'letter',
+    checks: ['buttonOperation','shroudLabel','terminalBlocks','relayOperates','channelsDisconnect','machineryStops','resetOperational','restartWhilePressed','connectionsSecure','cablesGlandsWiring'] },
+  'Safety Interlock': { suffix: 'SI', idMode: 'letter',
+    checks: ['mounted','channelsDisconnect','machineryStops','resetOperational','restartWhileOpen','lockEngaged','cantOpenUntilStopped','latchCondition','tamperInspection','connectionsSecure','cablesGlandsWiring'] }
+};
+const CATEGORY_NAMES = Object.keys(CATEGORY_DEFS);
 
-    { ...base, date: daysAgo(5), category: 'E-Stop', equipmentId: 'Press line 1 Press panel E-Stop',
-      millLocation: 'Press line 1', physicalLocation: 'Press panel', relayLocation: 'Press line 1 press panel', equipmentAffected: 'Press only',
-      manufacturer: 'Guardmaster', model: 'XCR', partNumber: 'GM-XCR-04',
-      checks: { buttonOperation:'Pass', shroudLabel:'Pass', terminalBlocks:'Pass', relayOperates:'Pass', channelsDisconnect:'Pass', machineryStops:'Pass', resetOperational:'Pass', restartWhilePressed:'Pass', connectionsSecure:'Fail', cablesGlandsWiring:'Pass' },
-      action: 'Requires Remedial Works', observations: 'Terminal slightly loose, needs re-tightening', qsed: false },
+const MANUFACTURERS = ['Eaton', 'Schneider', 'Guardmaster', 'ABB', 'Siemens', 'Allen-Bradley'];
+const MODELS = ['Rotary isolator', 'Panel isolator switch', 'XCR', 'Trojan 5', 'Safety interlock switch', 'Compact isolator'];
+const AUX_OPTIONS = ['No', '1 N/O', '1 N/O & 1 N/C', '1 N/C'];
+const OBSERVATIONS_POOL = [
+  '', '', '', '',
+  'Slight wear noted, monitor at next visit.',
+  'Terminal re-tightened during test.',
+  'Label faded, needs replacing.',
+  'No issues found, functioning as expected.',
+  'Minor discolouration on connector, not yet requiring action.',
+  'Long observation for wrapping check — this note is deliberately verbose so we can confirm the Observations page in the generated PDF handles multi-line text cleanly, wraps within the page margins, and paginates correctly once several of these appear in sequence without overlapping the next entry.'
+];
+const ENGINEERS = ['Rob Rose', 'Owen Bassett', 'John Gomersall'];
 
-    { ...base, date: daysAgo(100), category: 'Panel Isolator', equipmentId: 'Blending routing Isolator',
-      panelName: 'Blending routing', manufacturer: 'Schneider', model: 'Panel isolator switch',
-      currentRating: '63A', poles: '4', auxiliary: 'No', partNumber: 'SC-BR-63',
-      checks: { operation:'Pass', guards:'Pass', handle:'Pass', interlock:'Pass', heat:'Pass', connectionsSecure:'Pass' },
-      action: 'No', observations: '', qsed: true },
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
+function letterFromIndex(i) { let s = ''; i++; while (i > 0) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; }
 
-    { ...base, date: daysAgo(400), category: 'Safety Interlock', equipmentId: 'Blending conditioner 1 door Interlock',
-      millLocation: 'Blending', physicalLocation: 'Conditioner 1 door', equipmentAffected: 'Conditioner 1',
-      manufacturer: 'Guardmaster', model: 'Trojan 5', partNumber: 'GM-T5-11',
-      checks: { mounted:'Pass', channelsDisconnect:'Pass', machineryStops:'Pass', resetOperational:'Pass', restartWhileOpen:'Pass', lockEngaged:'Pass', cantOpenUntilStopped:'Pass', latchCondition:'Pass', tamperInspection:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
-      action: 'No', observations: 'Overdue for retest', qsed: false },
+function buildRecords(siteRef, siteName, count) {
+  const letterCounters = {};
+  const tagCounters = { 'Motor Isolator': 1 };
+  const records = [];
+  const perCategory = Math.ceil(count / CATEGORY_NAMES.length);
 
-    { ...base, date: daysAgo(10), category: 'Motor Isolator', equipmentId: 'Grinder 1 G1 Isolator',
-      millLocation: 'Grinder 1', equipmentName: 'G1', manufacturer: 'Eaton', model: 'Rotary isolator',
-      currentRating: '16A', poles: '3', auxiliary: 'No', partNumber: 'EA-G1-16',
-      checks: { operation:'Pass', handleCondition:'Pass', interlock:'Pass', heat:'Pass', enclosure:'Pass', auxContacts:'Pass', labelled:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
-      action: 'No', observations: '', qsed: false },
+  CATEGORY_NAMES.forEach(cat => {
+    const def = CATEGORY_DEFS[cat];
+    for (let i = 0; i < perCategory && records.length < count; i++) {
+      const location = pick(LOCATIONS);
+      const locCode = LOCATION_CODES[location];
+      let equipmentId;
+      if (def.idMode === 'tag') {
+        const tag = 'C' + (tagCounters['Motor Isolator']++);
+        equipmentId = locCode + '-' + tag + '-' + def.suffix;
+      } else {
+        const key = cat + '|' + locCode;
+        const idx = letterCounters[key] || 0;
+        letterCounters[key] = idx + 1;
+        equipmentId = locCode + '-' + letterFromIndex(idx) + '-' + def.suffix;
+      }
 
-    { ...base, date: daysAgo(2), category: 'E-Stop', equipmentId: 'Weigher 3 Weigher 3 panel E-Stop',
-      millLocation: 'Weigher 3', physicalLocation: 'Weigher 3 panel', relayLocation: 'Weigher 3 panel', equipmentAffected: 'Weigher 3 discharge',
-      manufacturer: 'Guardmaster', model: 'XCR', partNumber: 'GM-XCR-07',
-      checks: { buttonOperation:'Pass', shroudLabel:'Pass', terminalBlocks:'Pass', relayOperates:'Pass', channelsDisconnect:'Pass', machineryStops:'Pass', resetOperational:'Pass', restartWhilePressed:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
-      action: 'No', observations: '', qsed: false },
+      const anyFail = Math.random() < 0.15;
+      const checks = {};
+      let failedOne = false;
+      def.checks.forEach((k, ci) => {
+        if (anyFail && !failedOne && ci === def.checks.length - 1) { checks[k] = 'Fail'; failedOne = true; }
+        else if (anyFail && Math.random() < 0.12 && !failedOne) { checks[k] = 'Fail'; failedOne = true; }
+        else checks[k] = 'Pass';
+      });
 
-    { ...base, date: daysAgo(30), category: 'Motor Isolator', equipmentId: 'Intake M1 Isolator',
-      millLocation: 'Intake', equipmentName: 'M1', manufacturer: 'Eaton', model: 'Rotary isolator',
-      currentRating: '25A', poles: '3', auxiliary: '1 N/O', partNumber: 'EA-IN-25',
-      checks: { operation:'Pass', handleCondition:'Pass', interlock:'Pass', heat:'Pass', enclosure:'Pass', auxContacts:'Pass', labelled:'Pass', connectionsSecure:'Pass', cablesGlandsWiring:'Pass' },
-      action: 'No', observations: 'Duplicate entry logged by mistake', qsed: false,
-      deletedFlag: true, deletedBy: engineer, deletedAt: serverTimestamp() }
-  ];
+      const record = {
+        siteRef, siteName,
+        date: daysAgo(Math.random() < 0.1 ? 380 + Math.floor(Math.random() * 60) : Math.floor(Math.random() * 300)),
+        category: cat,
+        equipmentId,
+        millLocation: location,
+        manufacturer: pick(MANUFACTURERS),
+        model: pick(MODELS),
+        partNumber: locCode + '-' + Math.floor(1000 + Math.random() * 8999),
+        observations: pick(OBSERVATIONS_POOL),
+        action: failedOne ? pick(['Requires Replacement', 'Requires Remedial Works']) : 'No',
+        checks,
+        engineer: pick(ENGINEERS),
+        engineerEmail: currentUser.email,
+        qsed: Math.random() < 0.3,
+        createdAt: serverTimestamp()
+      };
+      if (cat === 'Panel Isolator') record.panelName = pick(['Routing panel', 'Main panel', 'Local panel']);
+      if (cat === 'Motor Isolator') record.equipmentName = record.equipmentId.split('-')[1];
+      if (cat === 'Emergency Stop') {
+        record.physicalLocation = location + ' press deck';
+        record.relayLocation = location + ' press panel';
+        record.equipmentAffected = pick(['Press only', 'All press routing', 'Conveyor and press']);
+      }
+      if (cat === 'Safety Interlock') {
+        record.physicalLocation = location + ' guard door';
+        record.equipmentAffected = pick(['Press only', 'All press routing', 'Conveyor and press']);
+      }
+      if (def.hasSpecs) {
+        record.currentRating = pick(['16A', '25A', '32A', '40A', '63A']);
+        record.poles = String(pick([1,2,3,4]));
+        record.auxiliary = pick(AUX_OPTIONS);
+      }
+      records.push(record);
+    }
+  });
+
+  // A few flagged-for-deletion, to test the pending-deletion review path too.
+  for (let i = 0; i < Math.min(3, records.length); i++) {
+    records[i] = { ...records[i], deletedFlag: true, deletedBy: pick(ENGINEERS), deletedAt: serverTimestamp() };
+  }
+
+  return records;
 }
 
 document.getElementById('seedBtn').addEventListener('click', async () => {
@@ -142,13 +207,14 @@ document.getElementById('seedBtn').addEventListener('click', async () => {
   const status = document.getElementById('appRoot').querySelector('#status');
   const siteRef = sel.value;
   const siteName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+  const count = Math.max(1, Math.min(300, parseInt(document.getElementById('countInput').value, 10) || 45));
   if (!siteRef) { status.textContent = 'Select a site first.'; return; }
 
   const btn = document.getElementById('seedBtn');
-  btn.disabled = true; btn.textContent = 'Adding…';
+  btn.disabled = true; btn.textContent = 'Generating…';
   status.textContent = '';
 
-  const records = sample(siteRef, siteName);
+  const records = buildRecords(siteRef, siteName, count);
   let done = 0;
   for (const rec of records) {
     try {
@@ -157,12 +223,12 @@ document.getElementById('seedBtn').addEventListener('click', async () => {
       status.textContent = `Added ${done}/${records.length}…`;
     } catch (e) {
       status.textContent = `Failed on record ${done + 1}: ` + (e.message || e.code);
-      btn.disabled = false; btn.textContent = 'Add sample data to this site';
+      btn.disabled = false; btn.textContent = 'Generate sample data';
       return;
     }
   }
-  status.textContent = `Done — ${done} sample tests added to ${siteName}. Includes 1 overdue item, 1 QSed item, and 1 flagged-for-deletion item, across all 4 categories.`;
-  btn.disabled = false; btn.textContent = 'Add sample data to this site';
+  status.textContent = `Done — ${done} test records added to ${siteName}, spread across all 4 categories and ${LOCATIONS.length} locations. Includes some overdue items, some pre-QSed, and 3 pre-flagged for deletion.`;
+  btn.disabled = false; btn.textContent = 'Generate sample data';
 });
 </script>
 
