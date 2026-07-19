@@ -126,6 +126,14 @@ function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
 function letterFromIndex(i) { let s = ''; i++; while (i > 0) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; }
 
+const LIMITATION_REASONS = [
+  'Machine in continuous production run — could not isolate for testing',
+  'Access refused by site operations manager on the day',
+  'Panel locked, keyholder not available during visit',
+  'Guard could not be safely opened without stopping a live process'
+];
+const AGREED_WITH_NAMES = ['Paul Harris', 'Site Manager (Thompsons)', 'Dave Whitfield', 'Shift Supervisor'];
+
 function buildRecords(siteRef, siteName, count) {
   const letterCounters = {};
   const tagCounters = { 'Motor Isolator': 1 };
@@ -148,10 +156,19 @@ function buildRecords(siteRef, siteName, count) {
         equipmentId = locCode + '-' + letterFromIndex(idx) + '-' + def.suffix;
       }
 
+      const testingStatus = Math.random() < 0.15 ? 'Limited' : 'Full';
+      const naCount = testingStatus === 'Limited' ? 1 + Math.floor(Math.random() * 2) : 0;
+      const naKeys = new Set();
+      if (naCount) {
+        const shuffled = [...def.checks].sort(() => Math.random() - 0.5);
+        shuffled.slice(0, Math.min(naCount, def.checks.length - 1)).forEach(k => naKeys.add(k));
+      }
+
       const anyFail = Math.random() < 0.15;
       const checks = {};
       let failedOne = false;
       def.checks.forEach((k, ci) => {
+        if (naKeys.has(k)) { checks[k] = 'N/A'; return; }
         if (anyFail && !failedOne && ci === def.checks.length - 1) { checks[k] = 'Fail'; failedOne = true; }
         else if (anyFail && Math.random() < 0.12 && !failedOne) { checks[k] = 'Fail'; failedOne = true; }
         else checks[k] = 'Pass';
@@ -169,11 +186,16 @@ function buildRecords(siteRef, siteName, count) {
         observations: pick(OBSERVATIONS_POOL),
         action: failedOne ? pick(['Requires Replacement', 'Requires Remedial Works']) : 'No',
         checks,
+        testingStatus,
         engineer: pick(ENGINEERS),
         engineerEmail: currentUser.email,
         qsed: Math.random() < 0.3,
         createdAt: serverTimestamp()
       };
+      if (testingStatus === 'Limited') {
+        record.limitationReason = pick(LIMITATION_REASONS);
+        record.limitationAgreedWith = pick(AGREED_WITH_NAMES);
+      }
       if (cat === 'Panel Isolator') record.panelName = pick(['Routing panel', 'Main panel', 'Local panel']);
       if (cat === 'Motor Isolator') record.equipmentName = record.equipmentId.split('-')[1];
       if (cat === 'Emergency Stop') {
@@ -227,7 +249,7 @@ document.getElementById('seedBtn').addEventListener('click', async () => {
       return;
     }
   }
-  status.textContent = `Done — ${done} test records added to ${siteName}, spread across all 4 categories and ${LOCATIONS.length} locations. Includes some overdue items, some pre-QSed, and 3 pre-flagged for deletion.`;
+  status.textContent = `Done — ${done} test records added to ${siteName}, spread across all 4 categories and ${LOCATIONS.length} locations. Includes some overdue items, some pre-QSed, ~15% marked Limited (with N/A checks, a reason and agreed-with), and 3 pre-flagged for deletion.`;
   btn.disabled = false; btn.textContent = 'Generate sample data';
 });
 </script>

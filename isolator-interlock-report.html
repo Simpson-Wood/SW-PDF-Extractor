@@ -141,7 +141,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Reports</h1>
-        <p id="versionLabel">v7.0 · Management</p>
+        <p id="versionLabel">v8.0 · Management</p>
       </div>
     </div>
     <div class="who">
@@ -217,8 +217,14 @@
         <div id="pendingList"><div class="empty-note">Select a site to review.</div></div>
       </div>
       <div class="card">
+        <p class="section-label">Limited / not fully tested</p>
+        <p class="hint" style="display:block;margin-bottom:14px;">Items agreed as limited on site — chase access before the next visit.</p>
+        <div id="limitedList"><div class="empty-note">Select a site to review.</div></div>
+      </div>
+      <div class="card">
         <p class="section-label">Report preview</p>
         <p class="hint" style="display:block;margin-bottom:14px;">Newest tests first. Tick QSed once you've checked an item — it drops to the bottom, out of the way. Test results aren't editable here, only wording.</p>
+        <input type="text" id="previewSearch" placeholder="Search by Equipment ID, location, manufacturer, model, observations…" style="margin-bottom:12px;">
         <div id="bulkDeleteBar" style="display:none;margin-bottom:12px;">
           <button type="button" class="remove-btn" id="bulkDeleteBtn" style="width:100%;padding:9px;">Delete selected (<span id="bulkDeleteCount">0</span>)</button>
         </div>
@@ -229,8 +235,20 @@
     <div id="scheduleTab" style="display:none;">
       <div class="card">
         <p class="section-label">Test schedule</p>
+        <input type="text" id="scheduleSearch" placeholder="Search by Equipment ID, location, manufacturer, model, observations…" style="margin-bottom:12px;">
         <div class="pill-row" id="catPills"></div>
-        <select class="loc-select" id="locFilter"><option value="">All locations</option></select>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <select class="loc-select" id="locFilter" style="margin-bottom:0;"><option value="">All locations</option></select>
+          <select id="schedulePassFilter" style="padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;">
+            <option value="">Pass or Fail</option>
+            <option value="pass">Pass only</option>
+            <option value="fail">Fail only</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="scheduleOverdueOnly" style="width:auto;margin:0;">Overdue only</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="scheduleLimitedOnly" style="width:auto;margin:0;">Limited only</label>
+        </div>
         <div id="scheduleContent"><div class="empty-note">Select a site.</div></div>
       </div>
     </div>
@@ -448,8 +466,20 @@ let activeCatFilter = 'All';
 let activeLocFilter = '';
 
 function overallPassOf(record) {
-  if (record.checks && Object.keys(record.checks).length) return Object.values(record.checks).every(v => v === 'Pass');
+  if (record.checks && Object.keys(record.checks).length) return !Object.values(record.checks).some(v => v === 'Fail');
   return true;
+}
+
+function isLimitedRecord(record) {
+  return record && record.testingStatus === 'Limited';
+}
+
+function matchesSearch(latest, eq, query) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  if (eq.toLowerCase().includes(q)) return true;
+  const fields = ['millLocation','panelName','equipmentName','physicalLocation','relayLocation','equipmentAffected','manufacturer','model','observations','partNumber'];
+  return fields.some(f => latest[f] && String(latest[f]).toLowerCase().includes(q));
 }
 
 function getReportGroups() {
@@ -667,6 +697,7 @@ async function loadSiteData() {
     const jobSnap = await getDoc(doc(db, 'jobs', siteRef));
     siteMeta = jobSnap.exists() ? jobSnap.data() : {};
     renderPending();
+    renderLimitedList();
     renderPreview();
     buildLocFilterOptions();
     if (document.getElementById('scheduleTab').style.display !== 'none') renderSchedule();
@@ -729,10 +760,35 @@ document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
   }
 });
 
+// ---- Limited / not fully tested items ----
+function renderLimitedList() {
+  const list = document.getElementById('limitedList');
+  const groups = getReportGroups().filter(g => isLimitedRecord(g.latest));
+  if (groups.length === 0) { list.innerHTML = '<div class="empty-note">Nothing limited on this site right now.</div>'; return; }
+  groups.sort((a, b) => a.eq.localeCompare(b.eq));
+  list.innerHTML = groups.map(g => {
+    const latest = g.latest;
+    return `
+      <div class="pending-item">
+        <div class="cat">${latest.category || 'Uncategorised'}</div>
+        <div class="eq">${g.eq}</div>
+        <div class="meta">${latest.limitationReason || 'No reason recorded'}</div>
+        <div class="meta">Agreed with: ${latest.limitationAgreedWith || '—'} · ${latest.date || '—'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('previewSearch').addEventListener('input', renderPreview);
+
 function renderPreview() {
   const previewList = document.getElementById('previewList');
   let groups = getReportGroups();
   if (groups.length === 0) { previewList.innerHTML = '<div class="empty-note">Nothing active to report for this site.</div>'; return; }
+
+  const searchQuery = document.getElementById('previewSearch').value.trim();
+  if (searchQuery) groups = groups.filter(g => g.latest && matchesSearch(g.latest, g.eq, searchQuery));
+  if (groups.length === 0) { previewList.innerHTML = '<div class="empty-note">Nothing matches that search.</div>'; return; }
 
   groups.sort((a, b) => {
     const aQ = !!a.latest.qsed, bQ = !!b.latest.qsed;
@@ -886,12 +942,30 @@ function buildLocFilterOptions() {
   if (!locs.includes(current)) { activeLocFilter = ''; sel.value = ''; }
 }
 document.getElementById('locFilter').addEventListener('change', (e) => { activeLocFilter = e.target.value; renderSchedule(); });
+document.getElementById('scheduleSearch').addEventListener('input', renderSchedule);
+document.getElementById('schedulePassFilter').addEventListener('change', renderSchedule);
+document.getElementById('scheduleOverdueOnly').addEventListener('change', renderSchedule);
+document.getElementById('scheduleLimitedOnly').addEventListener('change', renderSchedule);
 
 function renderSchedule() {
   const content = document.getElementById('scheduleContent');
   if (!document.getElementById('site').value) { content.innerHTML = '<div class="empty-note">Select a site.</div>'; return; }
-  const groups = getReportGroups();
+  let groups = getReportGroups();
   if (groups.length === 0) { content.innerHTML = '<div class="empty-note">Nothing active for this site.</div>'; return; }
+
+  const today = new Date();
+  groups = groups.map(g => {
+    let overdue = false;
+    if (g.latest && g.latest.date) overdue = Math.floor((today - new Date(g.latest.date)) / 86400000) > 365;
+    return { ...g, overdue };
+  });
+
+  const passFilter = document.getElementById('schedulePassFilter').value;
+  if (passFilter) groups = groups.filter(g => passFilter === 'pass' ? overallPassOf(g.latest) : !overallPassOf(g.latest));
+  if (document.getElementById('scheduleOverdueOnly').checked) groups = groups.filter(g => g.overdue);
+  if (document.getElementById('scheduleLimitedOnly').checked) groups = groups.filter(g => isLimitedRecord(g.latest));
+  const searchQuery = document.getElementById('scheduleSearch').value.trim();
+  if (searchQuery) groups = groups.filter(g => matchesSearch(g.latest, g.eq, searchQuery));
 
   const catsToShow = activeCatFilter === 'All' ? CATEGORY_NAMES : [activeCatFilter];
   let html = '';
@@ -909,7 +983,7 @@ function renderSchedule() {
     html += `<th>Location</th><th>Equipment ID</th><th>Manufacturer</th>`;
     if (def.hasIsolatorSpecs) html += `<th>Current rating</th><th>Poles</th><th>Auxiliary</th>`;
     checkCodes.forEach(code => { html += `<th>${code}</th>`; });
-    html += `<th>Model</th></tr></thead><tbody>`;
+    html += `<th>Model</th><th>Status</th><th>Observations</th></tr></thead><tbody>`;
 
     rows.forEach(g => {
       const latest = g.latest;
@@ -917,9 +991,12 @@ function renderSchedule() {
       if (def.hasIsolatorSpecs) html += `<td>${latest.currentRating || '—'}</td><td>${latest.poles || '—'}</td><td>${latest.auxiliary || '—'}</td>`;
       def.checks.forEach(c => {
         const v = latest.checks ? latest.checks[c.key] : '';
-        html += `<td class="${v === 'Pass' ? 'cell-pass' : v === 'Fail' ? 'cell-fail' : ''}">${v === 'Pass' ? '✓' : v === 'Fail' ? '✕' : '—'}</td>`;
+        const cellClass = v === 'Pass' ? 'cell-pass' : v === 'Fail' ? 'cell-fail' : '';
+        const cellText = v === 'Pass' ? '✓' : v === 'Fail' ? '✕' : v === 'N/A' ? 'N/A' : '—';
+        html += `<td class="${cellClass}">${cellText}</td>`;
       });
-      html += `<td style="white-space:nowrap;">${latest.model || '—'}</td></tr>`;
+      const statusLabel = isLimitedRecord(latest) ? '<span class="chip" style="background:#fff3cd;color:#8a6d1a;">Limited</span>' : '<span class="chip chip-pass">Full</span>';
+      html += `<td style="white-space:nowrap;">${latest.model || '—'}</td><td>${statusLabel}</td><td style="max-width:220px;">${latest.observations || '-'}</td></tr>`;
     });
     html += `</tbody></table></div>`;
   });
@@ -1246,6 +1323,43 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     }
   }
 
+  const limitedGroups = groups.filter(g => g.latest && isLimitedRecord(g.latest));
+  if (limitedGroups.length > 0) {
+    y += 26;
+    ensureRoom(20 + 30);
+    y = sectionBar(y, 'Items Tested With Agreed Limitations', contentW);
+    y += 10;
+
+    const limCols = [
+      { key: 'eq', label: 'Equipment ID', w: 130 },
+      { key: 'reason', label: 'Reason', w: contentW - 130 - 110 - 70 },
+      { key: 'agreedWith', label: 'Agreed With', w: 110 },
+      { key: 'date', label: 'Date', w: 70 }
+    ];
+    ensureRoom(20);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(90, 90, 90);
+    let lx = marginX;
+    limCols.forEach(c => { pdf.text(c.label, lx + 3, y + 11); lx += c.w; });
+    pdf.setDrawColor(220, 220, 220);
+    pdf.line(marginX, y + 16, marginX + contentW, y + 16);
+    y += 20;
+
+    limitedGroups.forEach((g, idx) => {
+      const latest = g.latest;
+      const rowVals = { eq: g.eq, reason: latest.limitationReason || '-', agreedWith: latest.limitationAgreedWith || '-', date: formatDateDMY(latest.date) };
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(40, 40, 40);
+      const cellLines = limCols.map(c => pdf.splitTextToSize(String(rowVals[c.key]), c.w - 6));
+      const maxLines = Math.max(1, ...cellLines.map(l => l.length));
+      const rowH = maxLines * 10 + 6;
+      ensureRoom(rowH);
+      if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, y - 3, contentW, rowH, 'F'); }
+      let cx = marginX;
+      limCols.forEach((c, ci) => { pdf.text(cellLines[ci], cx + 3, y + 6); cx += c.w; });
+      y += rowH;
+    });
+    y += 10;
+  }
+
   y += 26;
   ensureRoom(20 + 70);
   const anyFail = groups.some(g => g.latest && !overallPassOf(g.latest));
@@ -1377,18 +1491,21 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       shrinkable.forEach(c => { c.w = Math.max(30, Math.round(c.w * ratio)); });
     }
 
-    // Header row
-    const headerH = 24;
-    let x = marginX;
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(90, 90, 90);
-    cols.forEach(c => {
-      const lines = pdf.splitTextToSize(c.label, c.w - 4);
-      pdf.text(lines, x + 3, ty + 10);
-      x += c.w;
-    });
-    pdf.setDrawColor(220, 220, 220);
-    pdf.line(marginX, ty + headerH, marginX + cols.reduce((s,c)=>s+c.w,0), ty + headerH);
-    ty += headerH + 4;
+    // Header row - extracted so it can be redrawn on a continuation page.
+    let x;
+    function drawColumnHeaderRow(headerY) {
+      let hx = marginX;
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(90, 90, 90);
+      cols.forEach(c => {
+        const lines = pdf.splitTextToSize(c.label, c.w - 4);
+        pdf.text(lines, hx + 3, headerY + 10);
+        hx += c.w;
+      });
+      pdf.setDrawColor(220, 220, 220);
+      pdf.line(marginX, headerY + 24, marginX + cols.reduce((s,c)=>s+c.w,0), headerY + 24);
+      return headerY + 24 + 4;
+    }
+    ty = drawColumnHeaderRow(ty);
 
     rowsForCat.forEach((g, idx) => {
       const latest = g.latest;
@@ -1401,6 +1518,9 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
         pageW = pdf.internal.pageSize.getWidth();
         pageH = pdf.internal.pageSize.getHeight();
         ty = 40;
+        ty = sectionBar(ty, (SECTION_HEADINGS[cat] || cat) + ' — CONTINUED', pageW - marginX * 2);
+        ty += 10;
+        ty = drawColumnHeaderRow(ty);
       }
       const rowW = cols.reduce((s,c)=>s+c.w,0);
       if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, ty - 3, rowW, rowH, 'F'); }
@@ -1413,6 +1533,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
           const cx = x + c.w / 2, cy = ty + 3;
           if (cv === 'Pass') drawTick(pdf, cx, cy, 7, PASS_COLOR);
           else if (cv === 'Fail') drawCross(pdf, cx, cy, 7, FAIL_COLOR);
+          else if (cv === 'N/A') { pdf.setFontSize(6.5); pdf.setTextColor(150, 150, 150); pdf.text('N/A', cx - 6, cy + 3); pdf.setFontSize(8); pdf.setTextColor(40, 40, 40); }
           else { pdf.setTextColor(180, 180, 180); pdf.text('-', cx - 2, cy + 3); pdf.setTextColor(40, 40, 40); }
         } else {
           if (c.bold) pdf.setFont('helvetica', 'bold');
@@ -1431,6 +1552,11 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
 
   // ---- Observations page ----
   if (allObservations.length > 0) {
+    allObservations.sort((a, b) => {
+      if (a.pass !== b.pass) return a.pass ? 1 : -1; // failed items first
+      return a.eq.localeCompare(b.eq);
+    });
+
     pdf.addPage('a4', 'portrait');
     pageW = pdf.internal.pageSize.getWidth();
     pageH = pdf.internal.pageSize.getHeight();
@@ -1438,7 +1564,22 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     oy = sectionBar(oy, 'Observations', pageW - marginX * 2);
     oy += 14;
 
-    allObservations.forEach((o, idx) => {
+    allObservations.forEach((o) => {
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+      const lines = pdf.splitTextToSize(o.text, pageW - marginX * 2);
+      const entryH = 13 + lines.length * 11 + 6 + 14; // header line + wrapped text + gap + divider gap
+
+      // Measure the whole entry before drawing anything, so a header can never
+      // get stranded at the bottom of a page with its text orphaned on the next.
+      if (oy + entryH > pageH - 40) {
+        pdf.addPage('a4', 'portrait');
+        pageW = pdf.internal.pageSize.getWidth();
+        pageH = pdf.internal.pageSize.getHeight();
+        oy = 40;
+        oy = sectionBar(oy, 'Observations — Continued', pageW - marginX * 2);
+        oy += 14;
+      }
+
       pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5); pdf.setTextColor(26, 26, 26);
       pdf.text(o.eq, marginX, oy);
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(110, 110, 110);
@@ -1449,13 +1590,6 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       oy += 13;
 
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
-      const lines = pdf.splitTextToSize(o.text, pageW - marginX * 2);
-      if (oy + lines.length * 11 > pageH - 40) {
-        pdf.addPage('a4', 'portrait');
-        pageW = pdf.internal.pageSize.getWidth();
-        pageH = pdf.internal.pageSize.getHeight();
-        oy = 40;
-      }
       pdf.text(lines, marginX, oy);
       oy += lines.length * 11 + 6;
 
@@ -1547,36 +1681,76 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     { type: 'para', text: 'Subject to the observations, defects, limitations and recommendations recorded within this report, the devices identified as satisfactory operated in accordance with their identified intended functions during the inspection and tests performed.' }
   ];
 
+  // Measure first, then pick the largest text size that guarantees this fits
+  // on a single page - rather than guessing spacing and hoping.
+  const declAvailableH = pageH - 80; // dy starts at 40, footer sits near pageH-30
+  const fullW0 = pageW - marginX * 2;
+
+  function measureDeclHeight(bodySize) {
+    const lineH = bodySize * 1.18;
+    const titleSize = Math.round(bodySize * 1.55);
+    const headingSize = Math.round((bodySize + 1.3) * 10) / 10;
+    let h = 0;
+    declSections.forEach(sec => {
+      if (sec.type === 'title') {
+        h += 10 + 16;
+      } else if (sec.type === 'heading') {
+        h += headingSize * 1.5 + 4;
+      } else if (sec.type === 'para') {
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(bodySize);
+        const lines = pdf.splitTextToSize(sec.text, fullW0);
+        h += lines.length * lineH + 5;
+      } else if (sec.type === 'bullets') {
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(bodySize);
+        sec.items.forEach(item => {
+          const lines = pdf.splitTextToSize('\u2022  ' + item, fullW0 - 10);
+          h += lines.length * lineH + 1.5;
+        });
+        h += 5;
+      }
+    });
+    return h;
+  }
+
+  const sizeOptions = [9, 8.5, 8, 7.5, 7, 6.5, 6];
+  let bodySize = sizeOptions[sizeOptions.length - 1];
+  for (const s of sizeOptions) {
+    if (measureDeclHeight(s) <= declAvailableH) { bodySize = s; break; }
+  }
+  const titleSize = Math.round(bodySize * 1.55);
+  const headingSize = Math.round((bodySize + 1.3) * 10) / 10;
+  const lineH = bodySize * 1.18;
+
   declSections.forEach(sec => {
     const fullW = pageW - marginX * 2;
     if (sec.type === 'title') {
-      dEnsure(30);
-      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(26, 26, 26);
+      dEnsure(26);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(titleSize); pdf.setTextColor(26, 26, 26);
       pdf.text(sec.text, marginX, dy);
       dy += 10;
       pdf.setDrawColor(220, 220, 220);
       pdf.line(marginX, dy, pageW - marginX, dy);
-      dy += 20;
-    } else if (sec.type === 'heading') {
-      dEnsure(20);
-      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10.5); pdf.setTextColor(208, 34, 42);
-      pdf.text(sec.text.toUpperCase(), marginX, dy);
       dy += 16;
+    } else if (sec.type === 'heading') {
+      dEnsure(headingSize * 1.5 + 4);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(headingSize); pdf.setTextColor(208, 34, 42);
+      pdf.text(sec.text.toUpperCase(), marginX, dy);
+      dy += headingSize * 1.5 + 4;
     } else if (sec.type === 'para') {
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(50, 50, 50);
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(bodySize); pdf.setTextColor(50, 50, 50);
       const lines = pdf.splitTextToSize(sec.text, fullW);
-      dEnsure(lines.length * 11 + 6);
+      dEnsure(lines.length * lineH + 5);
       pdf.text(lines, marginX, dy);
-      dy += lines.length * 11 + 8;
+      dy += lines.length * lineH + 5;
     } else if (sec.type === 'bullets') {
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(50, 50, 50);
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(bodySize); pdf.setTextColor(50, 50, 50);
       sec.items.forEach(item => {
         const lines = pdf.splitTextToSize('\u2022  ' + item, fullW - 10);
-        dEnsure(lines.length * 11 + 2);
+        dEnsure(lines.length * lineH + 1.5);
         pdf.text(lines, marginX + 8, dy);
-        dy += lines.length * 11 + 3;
+        dy += lines.length * lineH + 1.5;
       });
-      dy += 8;
+      dy += 5;
     }
   });
 

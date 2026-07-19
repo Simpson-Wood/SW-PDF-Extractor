@@ -52,6 +52,7 @@
   .radio-opt input{display:none;}
   .radio-opt.pass-sel{border-color:var(--pass);background:#eaf7ee;color:var(--pass);}
   .radio-opt.fail-sel{border-color:var(--fail);background:#fbe9e9;color:var(--fail);}
+  .radio-opt.na-sel{border-color:var(--grey);background:#f0f0f0;color:var(--grey);}
 
   .id-preview{background:#f2f2f2;border:1.5px dashed var(--line);border-radius:7px;padding:10px 11px;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px;min-height:20px;letter-spacing:.02em;}
   .id-preview.pending{color:var(--grey);font-weight:400;font-style:italic;font-size:13px;}
@@ -139,7 +140,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Test</h1>
-        <p id="versionLabel">v10.0</p>
+        <p id="versionLabel">v11.0</p>
       </div>
     </div>
     <div class="who">
@@ -192,7 +193,20 @@
     <div id="regTab" style="display:none;">
       <div class="card">
         <p class="section-label">Site register</p>
+        <input type="text" id="regSearch" placeholder="Search by Equipment ID, location, manufacturer, model, observations…" style="margin-bottom:12px;">
         <div class="reg-subtabs" id="regSubtabs"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <select id="regLocFilter" style="flex:1;min-width:140px;padding:8px 9px;font-size:13px;border:1.5px solid var(--line);border-radius:7px;"><option value="">All locations</option></select>
+          <select id="regPassFilter" style="flex:1;min-width:110px;padding:8px 9px;font-size:13px;border:1.5px solid var(--line);border-radius:7px;">
+            <option value="">Pass or Fail</option>
+            <option value="pass">Pass only</option>
+            <option value="fail">Fail only</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="regOverdueOnly" style="width:auto;margin:0;">Overdue only</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="regLimitedOnly" style="width:auto;margin:0;">Limited/agreed limitation only</label>
+        </div>
         <div id="regList"><div class="loading-note">Select a site to view its register.</div></div>
       </div>
     </div>
@@ -220,7 +234,7 @@ import {
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const VERSION = "v10.0";
+const VERSION = "v11.0";
 document.getElementById('versionLabel').textContent = VERSION + ' · Log one or more tests for this visit';
 console.log('Isolator/Interlock tool', VERSION);
 
@@ -528,7 +542,7 @@ function rebuildSuggestions() {
 }
 
 function overallPassOf(record) {
-  if (record.checks && Object.keys(record.checks).length) return Object.values(record.checks).every(v => v === 'Pass');
+  if (record.checks && Object.keys(record.checks).length) return !Object.values(record.checks).some(v => v === 'Fail');
   return true;
 }
 
@@ -558,8 +572,48 @@ function buildRegSubtabs() {
 
 let expandedEquip = new Set();
 
+function locationOf(record) {
+  const def = CATEGORIES[record.category];
+  if (!def) return '';
+  return record[def.locationKey] || '';
+}
+
+function buildRegLocFilterOptions(activeTab) {
+  const sel = document.getElementById('regLocFilter');
+  const byEquip = {};
+  siteHistoryCache.forEach(d => { if (!byEquip[d.equipmentId]) byEquip[d.equipmentId] = []; byEquip[d.equipmentId].push(d); });
+  let latestList = Object.values(byEquip).map(hist => hist.filter(h => !h.deletedFlag)).filter(a => a.length).map(a => a[a.length - 1]);
+  if (activeTab && activeTab !== 'All') latestList = latestList.filter(r => r.category === activeTab);
+  const locs = Array.from(new Set(latestList.map(r => locationOf(r)).filter(Boolean))).sort();
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All locations</option>' + locs.map(l => `<option ${l === current ? 'selected' : ''}>${l}</option>`).join('');
+  if (!locs.includes(current)) sel.value = '';
+}
+
+function matchesSearch(latest, eq, query) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  if (eq.toLowerCase().includes(q)) return true;
+  const fields = ['millLocation','panelName','equipmentName','physicalLocation','relayLocation','equipmentAffected','manufacturer','model','observations','partNumber'];
+  return fields.some(f => latest[f] && String(latest[f]).toLowerCase().includes(q));
+}
+
+['regSearch','regLocFilter','regPassFilter'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const activeBtn = document.querySelector('#regSubtabs button.active');
+    renderRegister(activeBtn ? activeBtn.dataset.tab : 'All');
+  });
+});
+['regOverdueOnly','regLimitedOnly'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    const activeBtn = document.querySelector('#regSubtabs button.active');
+    renderRegister(activeBtn ? activeBtn.dataset.tab : 'All');
+  });
+});
+
 function renderRegister(activeTab) {
   activeTab = activeTab || 'All';
+  buildRegLocFilterOptions(activeTab);
   const list = document.getElementById('regList');
   const siteRef = document.getElementById('site').value;
   if (!siteRef) { list.innerHTML = '<div class="loading-note">Select a site to view its register.</div>'; return; }
@@ -571,17 +625,37 @@ function renderRegister(activeTab) {
     byEquip[d.equipmentId].push(d);
   });
 
+  const today = new Date();
   let groups = Object.keys(byEquip).map(eq => {
     const hist = byEquip[eq];
     const active = hist.filter(h => !h.deletedFlag);
-    return { eq, hist, active, latest: active.length ? active[active.length - 1] : null };
+    const latest = active.length ? active[active.length - 1] : null;
+    let daysSince = null, overdue = false;
+    if (latest && latest.date) {
+      daysSince = Math.floor((today - new Date(latest.date)) / 86400000);
+      overdue = daysSince > DUE_DAYS;
+    }
+    return { eq, hist, active, latest, daysSince, overdue };
   }).filter(g => g.latest || g.hist.some(h => h.deletedFlag));
+
   if (activeTab !== 'All') groups = groups.filter(g => (g.latest ? g.latest.category : g.hist[g.hist.length-1].category) === activeTab);
+
+  const locFilter = document.getElementById('regLocFilter').value;
+  if (locFilter) groups = groups.filter(g => g.latest && locationOf(g.latest) === locFilter);
+
+  const passFilter = document.getElementById('regPassFilter').value;
+  if (passFilter) groups = groups.filter(g => g.latest && (passFilter === 'pass' ? overallPassOf(g.latest) : !overallPassOf(g.latest)));
+
+  if (document.getElementById('regOverdueOnly').checked) groups = groups.filter(g => g.overdue);
+  if (document.getElementById('regLimitedOnly').checked) groups = groups.filter(g => g.latest && g.latest.testingStatus === 'Limited');
+
+  const searchQuery = document.getElementById('regSearch').value.trim();
+  if (searchQuery) groups = groups.filter(g => g.latest && matchesSearch(g.latest, g.eq, searchQuery));
+
   groups.sort((a, b) => a.eq.localeCompare(b.eq));
 
-  if (groups.length === 0) { list.innerHTML = '<div class="history-empty">Nothing in this category yet.</div>'; return; }
+  if (groups.length === 0) { list.innerHTML = '<div class="history-empty">Nothing matches the current filters.</div>'; return; }
 
-  const today = new Date();
   list.innerHTML = groups.map(g => {
     const latest = g.latest;
     const isExpanded = expandedEquip.has(g.eq);
@@ -628,11 +702,7 @@ function renderRegister(activeTab) {
     }
 
     const overallPass = overallPassOf(latest);
-    let daysSince = null, overdue = false;
-    if (latest.date) {
-      daysSince = Math.floor((today - new Date(latest.date)) / 86400000);
-      overdue = daysSince > DUE_DAYS;
-    }
+    const daysSince = g.daysSince, overdue = g.overdue;
     return `
       <div class="reg-item ${overdue ? 'overdue' : ''}">
         <div class="reg-item-top">
@@ -779,6 +849,7 @@ function renderCategoryFields(wrap, category, prefill) {
       <div class="radio-row" data-check="${c.key}">
         <div class="radio-opt" data-value="Pass"><input type="radio">Pass</div>
         <div class="radio-opt" data-value="Fail"><input type="radio">Fail</div>
+        <div class="radio-opt na-option" data-value="N/A" style="display:none;"><input type="radio">N/A</div>
       </div>
       <div class="error-msg" data-error-for="check-${c.key}">Required</div>
     </div>
@@ -787,16 +858,30 @@ function renderCategoryFields(wrap, category, prefill) {
   checksContainer.querySelectorAll('[data-check]').forEach(group => {
     group.querySelectorAll('.radio-opt').forEach(opt => {
       opt.addEventListener('click', () => {
-        group.querySelectorAll('.radio-opt').forEach(o => o.classList.remove('pass-sel','fail-sel'));
+        group.querySelectorAll('.radio-opt').forEach(o => o.classList.remove('pass-sel','fail-sel','na-sel'));
         const val = opt.getAttribute('data-value');
-        opt.classList.add(val === 'Pass' ? 'pass-sel' : 'fail-sel');
+        opt.classList.add(val === 'Pass' ? 'pass-sel' : val === 'Fail' ? 'fail-sel' : 'na-sel');
         group.setAttribute('data-value-selected', val);
         updateActionConstraint(wrap);
       });
     });
   });
 
+  applyTestingStatusToChecks(wrap);
   refreshIdPreview(wrap);
+}
+
+function applyTestingStatusToChecks(wrap) {
+  const isLimited = wrap.dataset.testingStatus === 'Limited';
+  wrap.querySelectorAll('.na-option').forEach(el => { el.style.display = isLimited ? '' : 'none'; });
+  if (!isLimited) {
+    wrap.querySelectorAll('[data-check]').forEach(group => {
+      if (group.getAttribute('data-value-selected') === 'N/A') {
+        group.removeAttribute('data-value-selected');
+        group.querySelectorAll('.radio-opt').forEach(o => o.classList.remove('pass-sel','fail-sel','na-sel'));
+      }
+    });
+  }
 }
 
 function updateActionConstraint(wrap) {
@@ -862,6 +947,22 @@ function addEntry(prefill) {
       </select>
       <div class="error-msg">Category is required</div>
 
+      <label>Testing status <span class="req">*</span></label>
+      <div class="radio-row" data-testing-status style="margin-bottom:14px;">
+        <div class="radio-opt" data-value="Full"><input type="radio">Full</div>
+        <div class="radio-opt" data-value="Limited"><input type="radio">Limited</div>
+      </div>
+      <div class="error-msg" data-error-for="testingStatus">Required</div>
+
+      <div data-role="limitationFields" style="display:none;">
+        <label>Reason for limitation <span class="req">*</span><span class="hint">E.g. couldn't isolate — machine in use, access refused</span></label>
+        <textarea data-field="limitationReason"></textarea>
+        <div class="error-msg">Reason is required for a limited test</div>
+        <label>Agreed with <span class="req">*</span><span class="hint">Who on site agreed this was acceptable</span></label>
+        <input type="text" data-field="limitationAgreedWith">
+        <div class="error-msg">Required for a limited test</div>
+      </div>
+
       <div data-role="catFields"></div>
 
       <label>Equipment ID <span class="hint" style="display:inline;">(generated automatically)</span></label>
@@ -913,6 +1014,32 @@ function addEntry(prefill) {
   document.getElementById('emptyNote').style.display = 'none';
 
   renderCategoryFields(wrap, prefill ? prefill.category : '', prefill);
+
+  const statusGroup = wrap.querySelector('[data-testing-status]');
+  const limitationBox = wrap.querySelector('[data-role="limitationFields"]');
+  if (prefill && prefill.testingStatus) {
+    wrap.dataset.testingStatus = prefill.testingStatus;
+    statusGroup.querySelectorAll('.radio-opt').forEach(o => {
+      o.classList.toggle('pass-sel', o.dataset.value === prefill.testingStatus);
+    });
+    limitationBox.style.display = prefill.testingStatus === 'Limited' ? 'block' : 'none';
+    if (prefill.testingStatus === 'Limited') {
+      wrap.querySelector('[data-field="limitationReason"]').value = prefill.limitationReason || '';
+      wrap.querySelector('[data-field="limitationAgreedWith"]').value = prefill.limitationAgreedWith || '';
+    }
+    applyTestingStatusToChecks(wrap);
+  }
+  statusGroup.querySelectorAll('.radio-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      statusGroup.querySelectorAll('.radio-opt').forEach(o => o.classList.remove('pass-sel'));
+      opt.classList.add('pass-sel');
+      const val = opt.getAttribute('data-value');
+      wrap.dataset.testingStatus = val;
+      statusGroup.setAttribute('data-value-selected', val);
+      limitationBox.style.display = val === 'Limited' ? 'block' : 'none';
+      applyTestingStatusToChecks(wrap);
+    });
+  });
 
   wrap.querySelector('[data-role="remove"]').addEventListener('click', () => {
     wrap.remove(); delete entries[id];
@@ -967,10 +1094,24 @@ function validateEntry(wrap, id) {
 
   const category = val('category');
   const def = CATEGORIES[category];
-  const record = { category, action: val('action'), manufacturer: val('manufacturer'), model: val('model'),
+  const testingStatus = wrap.dataset.testingStatus || '';
+  const record = { category, testingStatus, action: val('action'), manufacturer: val('manufacturer'), model: val('model'),
     partNumber: val('partNumber'), observations: val('observations'), checks: {} };
 
   mark(get('[data-field="category"]'), !!category);
+
+  const statusErrEl = wrap.querySelector('[data-error-for="testingStatus"]');
+  const statusOk = !!testingStatus;
+  if (statusErrEl) statusErrEl.style.display = statusOk ? 'none' : 'block';
+  if (!statusOk) valid = false;
+
+  if (testingStatus === 'Limited') {
+    record.limitationReason = val('limitationReason');
+    record.limitationAgreedWith = val('limitationAgreedWith');
+    mark(get('[data-field="limitationReason"]'), !!record.limitationReason);
+    mark(get('[data-field="limitationAgreedWith"]'), !!record.limitationAgreedWith);
+  }
+
   mark(get('[data-field="manufacturer"]'), !!record.manufacturer);
   mark(get('[data-field="model"]'), !!record.model);
   mark(get('[data-field="partNumber"]'), !!record.partNumber);
