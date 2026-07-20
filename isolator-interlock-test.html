@@ -140,7 +140,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Test</h1>
-        <p id="versionLabel">v11.0</p>
+        <p id="versionLabel">v12.0</p>
       </div>
     </div>
     <div class="who">
@@ -156,6 +156,24 @@
         <option value="" disabled selected>Loading site list…</option>
       </select>
       <p class="site-status" id="siteStatus"></p>
+      <div id="completeBanner" style="display:none;background:#fbe9e9;color:var(--fail);border:1px solid #f0bcbe;border-radius:7px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-top:8px;">This site is marked Complete — no new tests can be logged until a manager takes it out of Complete status.</div>
+      <button type="button" id="readyForQsBtn" style="display:none;width:100%;margin-top:10px;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;">Mark ready for QS</button>
+      <button type="button" id="toggleAddSiteBtn" style="width:100%;margin-top:10px;padding:9px;background:#fff;border:1.5px dashed var(--line);color:var(--grey);border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;">+ Add a new site</button>
+      <div id="addSiteForm" style="display:none;margin-top:12px;">
+        <label>Site reference <span class="hint">(short code, e.g. JUB-01 — can't be changed later)</span></label>
+        <input type="text" id="newSiteRef">
+        <label>Customer / site name</label>
+        <input type="text" id="newSiteName">
+        <label>Address line</label>
+        <input type="text" id="newSiteAddressLine">
+        <label>Postcode</label>
+        <input type="text" id="newSitePostcode" style="max-width:160px;text-transform:uppercase;">
+        <label>Agreed limitations <span class="hint">(what's out of scope, and why)</span></label>
+        <textarea id="newSiteLimitations" style="min-height:60px;"></textarea>
+        <label>Agreed with</label>
+        <input type="text" id="newSiteAgreedWith">
+        <button type="button" id="addSiteBtn" style="width:100%;padding:11px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;">Add site</button>
+      </div>
     </div>
   </div>
 
@@ -230,11 +248,11 @@ import {
   onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  initializeFirestore, persistentLocalCache, collection, addDoc, getDocs, doc, updateDoc,
+  initializeFirestore, persistentLocalCache, collection, addDoc, getDocs, doc, updateDoc, getDoc, setDoc,
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const VERSION = "v11.0";
+const VERSION = "v12.0";
 document.getElementById('versionLabel').textContent = VERSION + ' · Log one or more tests for this visit';
 console.log('Isolator/Interlock tool', VERSION);
 
@@ -254,6 +272,7 @@ const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'abd23e0c-2d96-49ad-a280-99ff317f7d60' });
 
 const ALERT_FLOW_URL = "REPLACE_WITH_ALERT_FLOW_URL";
+const QS_NOTIFY_FLOW_URL = "REPLACE_WITH_QS_NOTIFY_FLOW_URL";
 function reportSubmissionFailure(err, context) {
   console.error('Submission failed:', err, context);
   if (!navigator.onLine) return;
@@ -501,19 +520,87 @@ document.getElementById('site').addEventListener('change', () => {
   loadSiteData();
 });
 
+let currentJobStatus = '';
+
 async function loadSiteData() {
   const siteRef = document.getElementById('site').value;
   siteHistoryCache = [];
-  if (!siteRef) return;
+  currentJobStatus = '';
+  if (!siteRef) { updateJobStatusUI(); return; }
   try {
     const q = query(collection(db, 'isolatorTests'), where('siteRef', '==', siteRef), orderBy('equipmentId'), orderBy('date'));
     const snap = await getDocs(q);
     snap.forEach(docSnap => siteHistoryCache.push({ _id: docSnap.id, ...docSnap.data() }));
     rebuildSuggestions();
+
+    const jobSnap = await getDoc(doc(db, 'jobs', siteRef));
+    currentJobStatus = jobSnap.exists() ? (jobSnap.data().jobStatus || 'In Progress') : 'In Progress';
+    updateJobStatusUI();
   } catch (e) {
     console.error('Site data load failed:', e);
   }
 }
+
+function updateJobStatusUI() {
+  const completeBanner = document.getElementById('completeBanner');
+  const readyBtn = document.getElementById('readyForQsBtn');
+  completeBanner.style.display = currentJobStatus === 'Complete' ? 'block' : 'none';
+  readyBtn.style.display = currentJobStatus === 'In Progress' ? 'block' : 'none';
+}
+
+document.getElementById('readyForQsBtn').addEventListener('click', async () => {
+  const siteRef = document.getElementById('site').value;
+  const siteSelect = document.getElementById('site');
+  const siteName = siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : '';
+  if (!siteRef) return;
+  if (!confirm('Mark this site ready for QS review? The QS team will be emailed.')) return;
+  try {
+    await updateDoc(doc(db, 'jobs', siteRef), { jobStatus: 'Ready for QS' });
+    currentJobStatus = 'Ready for QS';
+    updateJobStatusUI();
+
+    const staffSnap = await getDocs(query(collection(db, 'staff'), where('position', '==', 'QS')));
+    const recipients = [];
+    staffSnap.forEach(d => { if (d.data().email || d.id) recipients.push(d.id); });
+
+    if (!QS_NOTIFY_FLOW_URL.startsWith('REPLACE')) {
+      fetch(QS_NOTIFY_FLOW_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteRef, siteName, recipients, notifiedBy: currentUser.displayName || currentUser.email, timestamp: new Date().toISOString() })
+      }).catch(() => {});
+    }
+    const banner = document.getElementById('banner');
+    banner.className = 'banner ok'; banner.textContent = 'Marked ready for QS.'; banner.style.display = 'block';
+  } catch (e) {
+    alert('Could not update status — ' + (e.message || e.code || 'unknown error'));
+  }
+});
+
+document.getElementById('toggleAddSiteBtn').addEventListener('click', () => {
+  const form = document.getElementById('addSiteForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('addSiteBtn').addEventListener('click', async () => {
+  const ref = document.getElementById('newSiteRef').value.trim();
+  const name = document.getElementById('newSiteName').value.trim();
+  if (!ref || !name) { alert('Site reference and name are both required.'); return; }
+  try {
+    await setDoc(doc(db, 'jobs', ref), {
+      name, status: 'Active', jobStatus: 'In Progress', createdAt: serverTimestamp(),
+      addressLine: document.getElementById('newSiteAddressLine').value.trim(),
+      postcode: document.getElementById('newSitePostcode').value.trim(),
+      agreedLimitations: document.getElementById('newSiteLimitations').value.trim(),
+      agreedWith: document.getElementById('newSiteAgreedWith').value.trim()
+    });
+    ['newSiteRef','newSiteName','newSiteAddressLine','newSitePostcode','newSiteLimitations','newSiteAgreedWith'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('addSiteForm').style.display = 'none';
+    await loadSites();
+    const banner = document.getElementById('banner');
+    banner.className = 'banner ok'; banner.textContent = 'Site added: ' + ref; banner.style.display = 'block';
+  } catch (e) {
+    alert('Could not add site — ' + (e.message || e.code || 'unknown error'));
+  }
+});
 
 const SEED_SUGGESTIONS = {
   millLocation: [
@@ -893,6 +980,7 @@ function updateActionConstraint(wrap) {
   if (anyFail && actionSelect.value === 'No') actionSelect.value = '';
   wrap.querySelector('[data-role="actionHint"]').style.display = anyFail ? 'block' : 'none';
   wrap.querySelector('[data-role="internalsReq"]').style.display = anyFail ? 'inline' : 'none';
+  wrap.querySelector('[data-role="obsReq"]').style.display = anyFail ? 'inline' : 'none';
 }
 
 const PHOTO_TARGET_BYTES = 200000;
@@ -947,10 +1035,16 @@ function addEntry(prefill) {
       </select>
       <div class="error-msg">Category is required</div>
 
-      <label>Testing status <span class="req">*</span></label>
+      <div data-role="catFields"></div>
+
+      <label>Equipment ID <span class="hint" style="display:inline;">(generated automatically)</span></label>
+      <div class="id-preview pending" data-role="idPreview">Select a category and fill in the fields above</div>
+      <p class="id-note" data-role="idNote"></p>
+
+      <label>Item has testing limitations <span class="req">*</span><span class="hint">Could everything be fully accessed and tested, or was something in the way?</span></label>
       <div class="radio-row" data-testing-status style="margin-bottom:14px;">
-        <div class="radio-opt" data-value="Full"><input type="radio">Full</div>
-        <div class="radio-opt" data-value="Limited"><input type="radio">Limited</div>
+        <div class="radio-opt" data-value="Full">No — fully tested</div>
+        <div class="radio-opt" data-value="Limited">Yes — limited</div>
       </div>
       <div class="error-msg" data-error-for="testingStatus">Required</div>
 
@@ -962,12 +1056,6 @@ function addEntry(prefill) {
         <input type="text" data-field="limitationAgreedWith">
         <div class="error-msg">Required for a limited test</div>
       </div>
-
-      <div data-role="catFields"></div>
-
-      <label>Equipment ID <span class="hint" style="display:inline;">(generated automatically)</span></label>
-      <div class="id-preview pending" data-role="idPreview">Select a category and fill in the fields above</div>
-      <p class="id-note" data-role="idNote"></p>
 
       <div data-role="isolatorSpecs"></div>
 
@@ -995,8 +1083,9 @@ function addEntry(prefill) {
       <input type="text" data-field="partNumber" value="${prefill && prefill.partNumber ? prefill.partNumber : ''}">
       <div class="error-msg">Part number is required</div>
 
-      <label>Observations</label>
+      <label>Observations <span class="req" data-role="obsReq" style="display:none;">*</span><span class="hint">Required if anything above failed</span></label>
       <textarea data-field="observations"></textarea>
+      <div class="error-msg" data-error-for="observations">An observation is required when a check has failed</div>
 
       <label>General photo of equipment <span class="req">*</span></label>
       <input type="file" accept="image/*" capture="environment" data-field="photo">
@@ -1152,6 +1241,12 @@ function validateEntry(wrap, id) {
   if (actionErrEl) actionErrEl.style.display = actionOk ? 'none' : 'block';
   if (!actionOk) valid = false;
 
+  const obsErrEl = wrap.querySelector('[data-error-for="observations"]');
+  const obsOk = !anyFail || !!record.observations;
+  get('[data-field="observations"]').classList.toggle('field-error', !obsOk);
+  if (obsErrEl) obsErrEl.style.display = obsOk ? 'none' : 'block';
+  if (!obsOk) valid = false;
+
   record.photoBase64 = entries[id] ? (entries[id].photoBase64 || null) : null;
   const photoErrEl = wrap.querySelector('[data-error-for="photo"]');
   const photoOk = !!record.photoBase64;
@@ -1191,6 +1286,10 @@ async function saveEntry(wrap, id) {
 
   if (!date || !siteRef) {
     banner.className = 'banner bad'; banner.textContent = 'Date and site are both required.';
+    banner.style.display = 'block'; window.scrollTo({top:0, behavior:'smooth'}); return;
+  }
+  if (currentJobStatus === 'Complete') {
+    banner.className = 'banner bad'; banner.textContent = 'This site is marked Complete — a manager needs to take it out of Complete status before new tests can be logged.';
     banner.style.display = 'block'; window.scrollTo({top:0, behavior:'smooth'}); return;
   }
 

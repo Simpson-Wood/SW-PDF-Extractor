@@ -23,16 +23,16 @@
   header .who button{background:none;border:none;color:#e2b0b3;font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-top:2px;}
 
   .site-bar{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;}
-  .site-bar-inner{max-width:900px;margin:0 auto;}
+  .site-bar-inner{max-width:1600px;margin:0 auto;}
   .site-bar label{font-size:12px;font-weight:600;margin-bottom:5px;display:block;}
   .site-bar select{width:100%;max-width:340px;padding:10px 11px;font-size:15px;border:1.5px solid var(--line);border-radius:7px;background:#fff;font-family:'Barlow',sans-serif;}
   .site-status{font-size:11.5px;color:var(--grey);margin-top:5px;}
 
-  .tab-bar{display:flex;max-width:900px;margin:0 auto;background:#fff;border-bottom:1px solid var(--line);}
+  .tab-bar{display:flex;max-width:1600px;margin:0 auto;background:#fff;border-bottom:1px solid var(--line);}
   .tab-bar button{flex:1;padding:13px;border:none;background:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:13px;color:var(--grey);cursor:pointer;border-bottom:3px solid transparent;}
   .tab-bar button.active{color:var(--red);border-bottom-color:var(--red);}
 
-  main{max-width:900px;margin:0 auto;padding:16px;}
+  main{max-width:1600px;margin:0 auto;padding:16px;}
   .card{background:var(--card);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);}
   .section-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px;color:var(--red);margin:0 0 12px;}
   .hint{color:var(--grey);font-size:12.5px;}
@@ -141,28 +141,28 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Reports</h1>
-        <p id="versionLabel">v8.0 · Management</p>
+        <p id="versionLabel">v9.0 · Management</p>
       </div>
     </div>
     <div class="who">
       <div class="name" id="whoName">—</div>
+      <button id="manageStaffLink" style="margin-right:12px;">Manage staff</button>
       <button id="signOutBtn">Sign out</button>
     </div>
   </header>
 
   <div class="site-bar">
     <div class="site-bar-inner">
-      <label>Site <span style="color:var(--red);">*</span></label>
-      <select id="site" required>
-        <option value="" disabled selected>Loading site list…</option>
-      </select>
+      <select id="site" style="display:none;"></select>
+      <label style="margin-bottom:4px;">Currently working on</label>
+      <div id="currentSiteDisplay" style="font-weight:700;font-size:15px;">No site selected — pick one from the Sites tab</div>
       <p class="site-status" id="siteStatus"></p>
+      <button type="button" id="refreshSiteBtn" style="margin-top:8px;padding:7px 12px;font-size:12px;font-weight:700;background:#fff;border:1.5px solid var(--line);border-radius:7px;cursor:pointer;">↻ Refresh</button>
     </div>
   </div>
 
   <div class="tab-bar">
     <button id="tabSitesBtn" class="active">Sites</button>
-    <button id="tabStaffBtn">Staff</button>
     <button id="tabReviewBtn">Review</button>
     <button id="tabScheduleBtn">Test schedule</button>
     <button id="tabFrontBtn">Front page & generate</button>
@@ -195,14 +195,23 @@
     </div>
 
     <div id="staffTab" style="display:none;">
+      <button type="button" id="backFromStaffBtn" style="background:none;border:none;color:var(--grey);font-size:12.5px;font-weight:600;cursor:pointer;margin-bottom:12px;text-decoration:underline;">← Back</button>
       <div class="card">
         <p class="section-label">Add staff member</p>
         <label>Name</label>
         <input type="text" id="newStaffName">
         <label>Email <span class="hint">(must match their Microsoft sign-in email)</span></label>
         <input type="text" id="newStaffEmail">
-        <label>Position <span class="hint">(e.g. Electrician, QS)</span></label>
-        <input type="text" id="newStaffPosition">
+        <label>Position <span class="hint">(used to identify who the QS is, for notifications)</span></label>
+        <select id="newStaffPosition">
+          <option value="" disabled selected>Select</option>
+          <option>Apprentice electrician</option>
+          <option>Electrical improver</option>
+          <option>Electrician</option>
+          <option>QS</option>
+          <option>Manager</option>
+          <option>Director</option>
+        </select>
         <button type="button" class="save-meta-btn" id="addStaffBtn" style="width:100%;background:var(--red);color:#fff;border:none;">Add staff member</button>
       </div>
       <div class="card">
@@ -212,6 +221,10 @@
     </div>
 
     <div id="reviewTab" style="display:none;">
+      <div class="card">
+        <p class="section-label">Overview</p>
+        <div id="statsBar" style="display:flex;gap:18px;flex-wrap:wrap;"></div>
+      </div>
       <div class="card">
         <p class="section-label">Pending deletions</p>
         <div id="pendingList"><div class="empty-note">Select a site to review.</div></div>
@@ -225,6 +238,7 @@
         <p class="section-label">Report preview</p>
         <p class="hint" style="display:block;margin-bottom:14px;">Newest tests first. Tick QSed once you've checked an item — it drops to the bottom, out of the way. Test results aren't editable here, only wording.</p>
         <input type="text" id="previewSearch" placeholder="Search by Equipment ID, location, manufacturer, model, observations…" style="margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin-bottom:10px;"><input type="checkbox" id="selectAllBox" style="width:auto;margin:0;">Select all visible</label>
         <div id="bulkDeleteBar" style="display:none;margin-bottom:12px;">
           <button type="button" class="remove-btn" id="bulkDeleteBtn" style="width:100%;padding:9px;">Delete selected (<span id="bulkDeleteCount">0</span>)</button>
         </div>
@@ -474,6 +488,10 @@ function isLimitedRecord(record) {
   return record && record.testingStatus === 'Limited';
 }
 
+function isSiteComplete() {
+  return siteMeta.jobStatus === 'Complete';
+}
+
 function matchesSearch(latest, eq, query) {
   if (!query) return true;
   const q = query.toLowerCase();
@@ -551,24 +569,34 @@ function boot() {
 
 // ---- Tabs ----
 document.getElementById('tabSitesBtn').addEventListener('click', () => switchTab('sites'));
-document.getElementById('tabStaffBtn').addEventListener('click', () => switchTab('staff'));
 document.getElementById('tabReviewBtn').addEventListener('click', () => switchTab('review'));
 document.getElementById('tabScheduleBtn').addEventListener('click', () => switchTab('schedule'));
 document.getElementById('tabFrontBtn').addEventListener('click', () => switchTab('front'));
 function switchTab(which) {
   document.getElementById('sitesTab').style.display = which === 'sites' ? 'block' : 'none';
-  document.getElementById('staffTab').style.display = which === 'staff' ? 'block' : 'none';
   document.getElementById('reviewTab').style.display = which === 'review' ? 'block' : 'none';
   document.getElementById('scheduleTab').style.display = which === 'schedule' ? 'block' : 'none';
   document.getElementById('frontTab').style.display = which === 'front' ? 'block' : 'none';
   document.getElementById('tabSitesBtn').classList.toggle('active', which === 'sites');
-  document.getElementById('tabStaffBtn').classList.toggle('active', which === 'staff');
   document.getElementById('tabReviewBtn').classList.toggle('active', which === 'review');
   document.getElementById('tabScheduleBtn').classList.toggle('active', which === 'schedule');
   document.getElementById('tabFrontBtn').classList.toggle('active', which === 'front');
   if (which === 'schedule') renderSchedule();
   if (which === 'front') renderFront();
+  if (which === 'review') renderStatsBar();
 }
+
+document.getElementById('manageStaffLink').addEventListener('click', () => {
+  ['sitesTab','reviewTab','scheduleTab','frontTab'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('staffTab').style.display = 'block';
+  document.querySelector('.tab-bar').style.display = 'none';
+});
+document.getElementById('backFromStaffBtn').addEventListener('click', () => {
+  document.getElementById('staffTab').style.display = 'none';
+  document.querySelector('.tab-bar').style.display = 'flex';
+  switchTab('sites');
+});
+document.getElementById('refreshSiteBtn').addEventListener('click', () => loadSiteData());
 
 // ---- Sites management ----
 async function renderSitesList() {
@@ -579,14 +607,63 @@ async function renderSitesList() {
     const rows = [];
     snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
     rows.sort((a, b) => a.id.localeCompare(b.id));
-    list.innerHTML = rows.map(r => `
-      <div class="site-item">
-        <div>
-          <div class="name">${r.id} — ${r.name || ''}</div>
-          <div class="meta">${r.addressLine || 'No address set'} ${r.postcode || ''} · ${r.status || 'Active'}</div>
+    const currentSiteRef = document.getElementById('site').value;
+    list.innerHTML = rows.map(r => {
+      const createdDate = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleDateString('en-GB') : '—';
+      const isSelected = r.id === currentSiteRef;
+      return `
+      <div class="site-item" style="flex-direction:column;align-items:stretch;gap:8px;${isSelected ? 'border-color:var(--red);background:#fff8f8;' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+          <div style="cursor:pointer;" data-select-site="${r.id}">
+            <div class="name">${r.id} — ${r.name || ''}</div>
+            <div class="meta">${r.addressLine || 'No address set'} ${r.postcode || ''} · Created ${createdDate}${r.certificateNumber ? ' · Cert #' + r.certificateNumber : ''}</div>
+          </div>
+          <button type="button" class="remove-btn" data-delete-site="${r.id}">Delete site</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label style="margin:0;font-size:11.5px;">Status:</label>
+          <select data-status-for="${r.id}" style="width:auto;padding:6px 8px;font-size:12.5px;border:1.5px solid var(--line);border-radius:6px;">
+            ${['In Progress','Ready for QS','In QS','Complete','Sent to Client'].map(s => `<option ${(r.jobStatus || 'In Progress') === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+          <button type="button" class="edit-btn" data-select-site="${r.id}" style="margin-left:auto;">${isSelected ? 'Selected' : 'Select this site'}</button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
+
+    list.querySelectorAll('[data-select-site]').forEach(el => {
+      el.addEventListener('click', () => {
+        const siteSelect = document.getElementById('site');
+        siteSelect.value = el.dataset.selectSite;
+        siteSelect.dispatchEvent(new Event('change'));
+        renderSitesList();
+      });
+    });
+    list.querySelectorAll('[data-status-for]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        try {
+          await setDoc(doc(db, 'jobs', sel.dataset.statusFor), { jobStatus: sel.value }, { merge: true });
+          renderSitesList();
+        } catch (e) { alert('Could not update status — ' + (e.message || e.code || 'unknown error')); }
+      });
+    });
+    list.querySelectorAll('[data-delete-site]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ref = btn.dataset.deleteSite;
+        if (!confirm('Permanently delete "' + ref + '" and every test record under it? This cannot be undone.')) return;
+        try {
+          const testsSnap = await getDocs(query(collection(db, 'isolatorTests'), where('siteRef', '==', ref)));
+          for (const d of testsSnap.docs) { await deleteDoc(doc(db, 'isolatorTests', d.id)); }
+          await deleteDoc(doc(db, 'jobs', ref));
+          if (document.getElementById('site').value === ref) {
+            document.getElementById('site').value = '';
+            document.getElementById('currentSiteDisplay').textContent = 'No site selected — pick one from the Sites tab';
+          }
+          await loadSites();
+          renderSitesList();
+        } catch (e) { alert('Could not delete site — ' + (e.message || e.code || 'unknown error')); }
+      });
+    });
   } catch (e) {
     list.innerHTML = '<div class="empty-note">Could not load — ' + (e.message || e.code || 'unknown error') + '</div>';
   }
@@ -600,6 +677,8 @@ document.getElementById('addSiteBtn').addEventListener('click', async () => {
     await setDoc(doc(db, 'jobs', ref), {
       name,
       status: 'Active',
+      jobStatus: 'In Progress',
+      createdAt: serverTimestamp(),
       addressLine: document.getElementById('newSiteAddressLine').value.trim(),
       postcode: document.getElementById('newSitePostcode').value.trim(),
       agreedLimitations: document.getElementById('newSiteLimitations').value.trim(),
@@ -684,7 +763,10 @@ async function loadSites() {
 document.getElementById('site').addEventListener('change', loadSiteData);
 
 async function loadSiteData() {
-  const siteRef = document.getElementById('site').value;
+  const siteSelect = document.getElementById('site');
+  const siteRef = siteSelect.value;
+  const display = document.getElementById('currentSiteDisplay');
+  display.textContent = siteRef && siteSelect.options[siteSelect.selectedIndex] ? siteSelect.options[siteSelect.selectedIndex].textContent : 'No site selected — pick one from the Sites tab';
   siteHistoryCache = [];
   siteMeta = {};
   const pendingList = document.getElementById('pendingList');
@@ -698,6 +780,7 @@ async function loadSiteData() {
     siteMeta = jobSnap.exists() ? jobSnap.data() : {};
     renderPending();
     renderLimitedList();
+    renderStatsBar();
     renderPreview();
     buildLocFilterOptions();
     if (document.getElementById('scheduleTab').style.display !== 'none') renderSchedule();
@@ -725,6 +808,7 @@ function renderPending() {
   `).join('');
   pendingList.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if (isSiteComplete()) { alert('This site is marked Complete — take it out of Complete status first.'); return; }
       const id = btn.dataset.id;
       try {
         if (btn.dataset.action === 'restore') {
@@ -749,6 +833,7 @@ function updateBulkDeleteBar() {
   bar.style.display = selected.length > 0 ? 'block' : 'none';
 }
 document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
+  if (isSiteComplete()) { alert('This site is marked Complete — take it out of Complete status first.'); return; }
   const selected = Array.from(document.querySelectorAll('.bulk-select:checked')).map(cb => cb.dataset.bulkId);
   if (selected.length === 0) return;
   if (!confirm('Permanently delete ' + selected.length + ' test record' + (selected.length > 1 ? 's' : '') + '? This cannot be undone.')) return;
@@ -761,6 +846,24 @@ document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
 });
 
 // ---- Limited / not fully tested items ----
+// ---- Stats bar ----
+function renderStatsBar() {
+  const bar = document.getElementById('statsBar');
+  const groups = getReportGroups();
+  const total = groups.length;
+  const failed = groups.filter(g => g.latest && !overallPassOf(g.latest)).length;
+  const limited = groups.filter(g => isLimitedRecord(g.latest)).length;
+  const passed = total - failed;
+  const qsed = groups.filter(g => g.latest && g.latest.qsed).length;
+  const stat = (label, val, color) => `<div><div style="font-size:22px;font-weight:700;${color ? 'color:' + color + ';' : ''}">${val}</div><div style="font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.03em;font-weight:600;">${label}</div></div>`;
+  bar.innerHTML = stat('Total', total) + stat('Passed', passed, 'var(--pass)') + stat('Failed', failed, 'var(--fail)') + stat('Limited', limited, '#8a6d1a') + stat('QSed', qsed + ' / ' + total);
+}
+
+document.getElementById('selectAllBox').addEventListener('change', (e) => {
+  document.querySelectorAll('.bulk-select').forEach(cb => { cb.checked = e.target.checked; });
+  updateBulkDeleteBar();
+});
+
 function renderLimitedList() {
   const list = document.getElementById('limitedList');
   const groups = getReportGroups().filter(g => isLimitedRecord(g.latest));
@@ -833,10 +936,29 @@ function renderPreview() {
       <input type="text" data-edit-field="${f.key}" value="${(latest[f.key] || '').replace(/"/g,'&quot;')}">
     `).join('');
 
+    const checksSummary = def ? def.checks.map(c => {
+      const v = latest.checks ? latest.checks[c.key] : '';
+      const color = v === 'Pass' ? 'var(--pass)' : v === 'Fail' ? 'var(--fail)' : 'var(--grey)';
+      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px;"><span>${c.label}</span><span style="font-weight:700;color:${color};">${v || '—'}</span></div>`;
+    }).join('') : '';
+
+    const photosHtml =
+      (latest.photoBase64 ? `<div style="margin-bottom:10px;"><p class="hint" style="margin:0 0 4px;font-weight:600;">General photo</p><img src="data:image/jpeg;base64,${latest.photoBase64}" style="max-width:220px;border-radius:6px;cursor:zoom-in;" data-full-photo="${latest.photoBase64}"></div>` : '') +
+      (latest.photoInternalsBase64 ? `<div style="margin-bottom:10px;"><p class="hint" style="margin:0 0 4px;font-weight:600;">Internals photo</p><img src="data:image/jpeg;base64,${latest.photoInternalsBase64}" style="max-width:220px;border-radius:6px;cursor:zoom-in;" data-full-photo="${latest.photoInternalsBase64}"></div>` : '') +
+      (!latest.photoBase64 && !latest.photoInternalsBase64 ? '<p class="hint">No photos on this test.</p>' : '');
+
     return `
       <div class="preview-item">
         <div class="top">
           <div><div class="cat">${latest.category || 'Uncategorised'}</div><div class="eq">${g.eq}</div></div>
+        </div>
+        <div style="border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:10px 0;margin-bottom:10px;">
+          <p class="hint" style="font-weight:600;margin:0 0 6px;">Checklist result (read-only)</p>
+          ${checksSummary || '<p class="hint">No checklist recorded.</p>'}
+        </div>
+        <div style="margin-bottom:10px;">
+          <p class="hint" style="font-weight:600;margin:0 0 6px;">Photos <span style="font-weight:400;">(click to view full size)</span></p>
+          ${photosHtml}
         </div>
         <div class="preview-edit" data-doc-id="${latest._id}" data-category="${latest.category}">
           ${fieldInputs}
@@ -861,6 +983,7 @@ function renderPreview() {
 
   previewList.querySelectorAll('[data-qsed-id]').forEach(cb => {
     cb.addEventListener('change', async () => {
+      if (isSiteComplete()) { alert('This site is marked Complete — take it out of Complete status first.'); cb.checked = !cb.checked; return; }
       try {
         await updateDoc(doc(db, 'isolatorTests', cb.dataset.qsedId), { qsed: cb.checked });
         await loadSiteData();
@@ -873,9 +996,17 @@ function renderPreview() {
   });
   previewList.querySelectorAll('[data-single-delete]').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if (isSiteComplete()) { alert('This site is marked Complete — take it out of Complete status first.'); return; }
       if (!confirm('Permanently delete this test record? This cannot be undone.')) return;
       try { await deleteDoc(doc(db, 'isolatorTests', btn.dataset.singleDelete)); await loadSiteData(); }
       catch (e) { alert('Could not delete — ' + (e.message || e.code || 'unknown error')); }
+    });
+  });
+
+  previewList.querySelectorAll('[data-full-photo]').forEach(img => {
+    img.addEventListener('click', () => {
+      const w = window.open();
+      if (w) w.document.write('<img src="data:image/jpeg;base64,' + img.dataset.fullPhoto + '" style="max-width:100%;">');
     });
   });
 
@@ -900,6 +1031,7 @@ function renderPreview() {
     editBox.querySelector('[data-role="cancel"]').addEventListener('click', () => { editingId = null; renderPreview(); });
 
     editBox.querySelector('[data-role="save"]').addEventListener('click', async () => {
+      if (isSiteComplete()) { alert('This site is marked Complete — take it out of Complete status first.'); return; }
       const docId = editBox.dataset.docId;
       const update = {};
       const values = {};
@@ -1304,79 +1436,42 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   ];
   companyRows.forEach((r, i) => { ensureRoom(22); y = labelValueRow(y, contentW, r[0], r[1], i % 2 === 1); });
 
-  const limitationsText = document.getElementById('metaLimitations').value.trim();
-  if (limitationsText) {
-    y += 26;
-    ensureRoom(20 + 40);
-    y = sectionBar(y, 'Agreed Limitations', contentW);
-    y += 10;
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
-    const limLines = pdf.splitTextToSize(limitationsText, contentW);
-    ensureRoom(limLines.length * 11 + 16);
-    pdf.text(limLines, marginX, y);
-    y += limLines.length * 11 + 8;
-    const agreedWith = document.getElementById('metaAgreedWith').value.trim();
-    if (agreedWith) {
-      pdf.setFont('helvetica', 'italic'); pdf.setFontSize(8.5); pdf.setTextColor(110, 110, 110);
-      pdf.text('Agreed with: ' + agreedWith, marginX, y);
-      y += 14;
-    }
-  }
-
-  const limitedGroups = groups.filter(g => g.latest && isLimitedRecord(g.latest));
-  if (limitedGroups.length > 0) {
-    y += 26;
-    ensureRoom(20 + 30);
-    y = sectionBar(y, 'Items Tested With Agreed Limitations', contentW);
-    y += 10;
-
-    const limCols = [
-      { key: 'eq', label: 'Equipment ID', w: 130 },
-      { key: 'reason', label: 'Reason', w: contentW - 130 - 110 - 70 },
-      { key: 'agreedWith', label: 'Agreed With', w: 110 },
-      { key: 'date', label: 'Date', w: 70 }
-    ];
-    ensureRoom(20);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(90, 90, 90);
-    let lx = marginX;
-    limCols.forEach(c => { pdf.text(c.label, lx + 3, y + 11); lx += c.w; });
-    pdf.setDrawColor(220, 220, 220);
-    pdf.line(marginX, y + 16, marginX + contentW, y + 16);
-    y += 20;
-
-    limitedGroups.forEach((g, idx) => {
-      const latest = g.latest;
-      const rowVals = { eq: g.eq, reason: latest.limitationReason || '-', agreedWith: latest.limitationAgreedWith || '-', date: formatDateDMY(latest.date) };
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(40, 40, 40);
-      const cellLines = limCols.map(c => pdf.splitTextToSize(String(rowVals[c.key]), c.w - 6));
-      const maxLines = Math.max(1, ...cellLines.map(l => l.length));
-      const rowH = maxLines * 10 + 6;
-      ensureRoom(rowH);
-      if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, y - 3, contentW, rowH, 'F'); }
-      let cx = marginX;
-      limCols.forEach((c, ci) => { pdf.text(cellLines[ci], cx + 3, y + 6); cx += c.w; });
-      y += rowH;
-    });
-    y += 10;
-  }
-
+  // Short declaration, sitting with the sign-off rather than the full
+  // Final Declaration page at the very end of the document.
   y += 26;
-  ensureRoom(20 + 70);
+  ensureRoom(20 + 50);
+  y = sectionBar(y, 'Declaration', contentW);
+  y += 10;
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
+  const shortDeclText = "I/We, being the person(s) responsible for the inspection and functional testing of the machinery safety and isolation devices identified in this report, as indicated by my/our signatures below, having exercised reasonable skill and care when carrying out the inspection and testing, hereby declare that the information contained in this report, including the recorded results, observations and attached schedules, provides an accurate assessment of the functional condition of the devices tested at the time of the inspection, taking into account the stated scope, operating conditions, extent and limitations of the work.";
+  const shortDeclLines = pdf.splitTextToSize(shortDeclText, contentW);
+  ensureRoom(shortDeclLines.length * 11 + 10);
+  pdf.text(shortDeclLines, marginX, y);
+  y += shortDeclLines.length * 11 + 10;
+
+  y += 16;
+  ensureRoom(20 + 74);
   const anyFail = groups.some(g => g.latest && !overallPassOf(g.latest));
   y = sectionBar(y, 'Overall Assessment', contentW);
-  const boxH = 60;
+  const boxH = 74;
   pdf.setFillColor(anyFail ? 251 : 234, anyFail ? 235 : 247, anyFail ? 235 : 238);
   pdf.rect(marginX, y, contentW, boxH, 'F');
   pdf.setDrawColor(225, 223, 218);
   pdf.rect(marginX, y, contentW, boxH);
   pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
   pdf.setTextColor(anyFail ? 192 : 31, anyFail ? 39 : 138, anyFail ? 45 : 61);
-  pdf.text(anyFail ? 'UNSATISFACTORY' : 'SATISFACTORY', marginX + 12, y + 30);
+  pdf.text(anyFail ? 'UNSATISFACTORY' : 'SATISFACTORY', marginX + contentW / 2, y + 26, { align: 'center' });
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
   pdf.setTextColor(90, 90, 90);
   pdf.text(anyFail
     ? 'One or more items on the register have failed testing and require further action.'
-    : 'No outstanding failures recorded against this site at the time of generation.', marginX + 12, y + 46);
+    : 'No outstanding failures recorded against this site at the time of generation.', marginX + 12, y + 44);
+
+  // Reserve this page + coordinate now; the actual Observations page number
+  // isn't known until that section is built later in the document, so the
+  // real text gets filled in via a setPage() jump-back right before saving.
+  const assessmentPageNum = pdf.internal.getCurrentPageInfo().pageNumber;
+  const pageRefX = marginX + 12, pageRefY = y + 62;
   y += boxH + 10;
 
   // ---- Sign-off ----
@@ -1409,6 +1504,75 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   const todayStr = new Date().toISOString().slice(0, 10);
   signOffBlock('Inspected and tested by', document.getElementById('signInspectedName').value, document.getElementById('signInspectedPosition').value.trim(), inspectedSig, todayStr);
   signOffBlock('Report authorised by', document.getElementById('signAuthName').value, document.getElementById('signAuthPosition').value.trim(), authSig, todayStr);
+
+  // ---- Agreed Limitations - its own page, so it never pushes the front
+  // page or sign-off onto page 2 ----
+  pdf.addPage('a4', 'portrait');
+  pageW = pdf.internal.pageSize.getWidth();
+  pageH = pdf.internal.pageSize.getHeight();
+  let ly = 40;
+  ly = sectionBar(ly, 'Agreed Limitations', pageW - marginX * 2);
+  ly += 14;
+
+  const limitationsText = document.getElementById('metaLimitations').value.trim();
+  const agreedWithSite = document.getElementById('metaAgreedWith').value.trim();
+  const limitedGroups = groups.filter(g => g.latest && isLimitedRecord(g.latest));
+
+  if (!limitationsText && limitedGroups.length === 0) {
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(60, 60, 60);
+    pdf.text('All identified equipment was fully tested, with no agreed limitations recorded for this site.', marginX, ly);
+  } else {
+    if (limitationsText) {
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
+      const limLines = pdf.splitTextToSize(limitationsText, pageW - marginX * 2);
+      pdf.text(limLines, marginX, ly);
+      ly += limLines.length * 11 + 8;
+      if (agreedWithSite) {
+        pdf.setFont('helvetica', 'italic'); pdf.setFontSize(8.5); pdf.setTextColor(110, 110, 110);
+        pdf.text('Agreed with: ' + agreedWithSite, marginX, ly);
+        ly += 20;
+      }
+    }
+
+    if (limitedGroups.length > 0) {
+      ly += 10;
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10.5); pdf.setTextColor(26, 26, 26);
+      pdf.text('Items Tested With Agreed Limitations', marginX, ly);
+      ly += 16;
+
+      const limCols = [
+        { key: 'eq', label: 'Equipment ID', w: 130 },
+        { key: 'reason', label: 'Reason', w: (pageW - marginX * 2) - 130 - 110 - 70 },
+        { key: 'agreedWith', label: 'Agreed With', w: 110 },
+        { key: 'date', label: 'Date', w: 70 }
+      ];
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(90, 90, 90);
+      let lx = marginX;
+      limCols.forEach(c => { pdf.text(c.label, lx + 3, ly + 11); lx += c.w; });
+      pdf.setDrawColor(220, 220, 220);
+      pdf.line(marginX, ly + 16, pageW - marginX, ly + 16);
+      ly += 20;
+
+      limitedGroups.forEach((g, idx) => {
+        const latest = g.latest;
+        const rowVals = { eq: g.eq, reason: latest.limitationReason || '-', agreedWith: latest.limitationAgreedWith || '-', date: formatDateDMY(latest.date) };
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(40, 40, 40);
+        const cellLines = limCols.map(c => pdf.splitTextToSize(String(rowVals[c.key]), c.w - 6));
+        const maxLines = Math.max(1, ...cellLines.map(l => l.length));
+        const rowH = maxLines * 10 + 6;
+        if (ly + rowH > pageH - 40) {
+          pdf.addPage('a4', 'portrait');
+          pageW = pdf.internal.pageSize.getWidth();
+          pageH = pdf.internal.pageSize.getHeight();
+          ly = 40;
+        }
+        if (idx % 2 === 1) { pdf.setFillColor(250, 249, 247); pdf.rect(marginX, ly - 3, pageW - marginX * 2, rowH, 'F'); }
+        let cx = marginX;
+        limCols.forEach((c, ci) => { pdf.text(cellLines[ci], cx + 3, ly + 6); cx += c.w; });
+        ly += rowH;
+      });
+    }
+  }
 
   // ---- One landscape table per category, sorted by location ----
   // Observations are collected here and printed on their own page at the end,
@@ -1480,13 +1644,13 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       sumFixed += c.w;
     });
 
-    // Guarantee the whole table actually fits the page width - shrink
-    // non-check columns proportionally if the sum exceeds the usable space.
-    if (sumFixed > usableW) {
-      const shrinkable = cols.filter(c => !c.check);
-      const shrinkableSum = shrinkable.reduce((s, c) => s + c.w, 0);
-      const checkSum = sumFixed - shrinkableSum;
-      const available = usableW - checkSum;
+    // Always fill the full page width - shrink OR grow non-check columns
+    // proportionally so every table looks consistent regardless of column count.
+    const shrinkable = cols.filter(c => !c.check);
+    const shrinkableSum = shrinkable.reduce((s, c) => s + c.w, 0);
+    const checkSum = sumFixed - shrinkableSum;
+    const available = usableW - checkSum;
+    if (shrinkableSum > 0 && available > 0) {
       const ratio = Math.max(0.5, available / shrinkableSum);
       shrinkable.forEach(c => { c.w = Math.max(30, Math.round(c.w * ratio)); });
     }
@@ -1551,6 +1715,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   });
 
   // ---- Observations page ----
+  let observationsPageNum = null;
   if (allObservations.length > 0) {
     allObservations.sort((a, b) => {
       if (a.pass !== b.pass) return a.pass ? 1 : -1; // failed items first
@@ -1560,6 +1725,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     pdf.addPage('a4', 'portrait');
     pageW = pdf.internal.pageSize.getWidth();
     pageH = pdf.internal.pageSize.getHeight();
+    observationsPageNum = pdf.internal.getCurrentPageInfo().pageNumber;
     let oy = 40;
     oy = sectionBar(oy, 'Observations', pageW - marginX * 2);
     oy += 14;
@@ -1753,6 +1919,15 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
       dy += 5;
     }
   });
+
+  if (anyFail) {
+    pdf.setPage(assessmentPageNum);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5);
+    pdf.setTextColor(192, 39, 45);
+    pdf.text(observationsPageNum
+      ? 'See the Observations section, page ' + observationsPageNum + ', for details of failed items.'
+      : 'See the Observations section for details of failed items.', pageRefX, pageRefY);
+  }
 
   const totalPages = pdf.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
