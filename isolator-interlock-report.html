@@ -37,6 +37,8 @@
   .section-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px;color:var(--red);margin:0 0 12px;}
   .hint{color:var(--grey);font-size:12.5px;}
   label{display:block;font-size:12.5px;font-weight:600;margin:0 0 5px;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:0 24px;align-items:start;}
+  .form-grid .field-wide{grid-column:1 / -1;}
   input[type=text], input[type=date]{width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;font-family:'Barlow',sans-serif;}
   .postcode-ok{color:var(--pass);}
   .postcode-bad{color:var(--fail);}
@@ -141,7 +143,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Reports</h1>
-        <p id="versionLabel">v9.0 · Management</p>
+        <p id="versionLabel">v11.0 · Management</p>
       </div>
     </div>
     <div class="who">
@@ -174,18 +176,32 @@
     <div id="sitesTab">
       <div class="card">
         <p class="section-label">Add new customer / site</p>
-        <label>Site reference <span class="hint">(short code, e.g. JUB-01 — becomes the site's ID, can't be changed later)</span></label>
-        <input type="text" id="newSiteRef">
-        <label>Customer / site name</label>
-        <input type="text" id="newSiteName">
-        <label>Address line</label>
-        <input type="text" id="newSiteAddressLine">
-        <label>Postcode</label>
-        <input type="text" id="newSitePostcode" style="max-width:160px;text-transform:uppercase;">
-        <label>Agreed limitations <span class="hint">(what's out of scope, and why)</span></label>
-        <textarea id="newSiteLimitations" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;min-height:60px;font-family:'Barlow',sans-serif;"></textarea>
-        <label>Agreed with</label>
-        <input type="text" id="newSiteAgreedWith">
+        <div class="form-grid">
+          <div>
+            <label>Site reference <span class="hint">(suggested automatically — edit if you need something different, can't be changed later)</span></label>
+            <input type="text" id="newSiteRef">
+          </div>
+          <div>
+            <label>Customer / site name</label>
+            <input type="text" id="newSiteName">
+          </div>
+          <div>
+            <label>Address line</label>
+            <input type="text" id="newSiteAddressLine">
+          </div>
+          <div>
+            <label>Postcode</label>
+            <input type="text" id="newSitePostcode" style="text-transform:uppercase;">
+          </div>
+          <div>
+            <label>Agreed with</label>
+            <input type="text" id="newSiteAgreedWith">
+          </div>
+          <div class="field-wide">
+            <label>Agreed limitations <span class="hint">(what's out of scope, and why)</span></label>
+            <textarea id="newSiteLimitations" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;min-height:60px;font-family:'Barlow',sans-serif;"></textarea>
+          </div>
+        </div>
         <button type="button" class="save-meta-btn" id="addSiteBtn" style="width:100%;background:var(--red);color:#fff;border:none;">Add site</button>
       </div>
       <div class="card">
@@ -198,20 +214,28 @@
       <button type="button" id="backFromStaffBtn" style="background:none;border:none;color:var(--grey);font-size:12.5px;font-weight:600;cursor:pointer;margin-bottom:12px;text-decoration:underline;">← Back</button>
       <div class="card">
         <p class="section-label">Add staff member</p>
-        <label>Name</label>
-        <input type="text" id="newStaffName">
-        <label>Email <span class="hint">(must match their Microsoft sign-in email)</span></label>
-        <input type="text" id="newStaffEmail">
-        <label>Position <span class="hint">(used to identify who the QS is, for notifications)</span></label>
-        <select id="newStaffPosition">
-          <option value="" disabled selected>Select</option>
-          <option>Apprentice electrician</option>
-          <option>Electrical improver</option>
-          <option>Electrician</option>
-          <option>QS</option>
-          <option>Manager</option>
-          <option>Director</option>
-        </select>
+        <div class="form-grid">
+          <div>
+            <label>Name</label>
+            <input type="text" id="newStaffName">
+          </div>
+          <div>
+            <label>Email <span class="hint">(must match their Microsoft sign-in email)</span></label>
+            <input type="text" id="newStaffEmail">
+          </div>
+          <div>
+            <label>Position <span class="hint">(used to identify who the QS is, for notifications)</span></label>
+            <select id="newStaffPosition">
+              <option value="" disabled selected>Select</option>
+              <option>Apprentice electrician</option>
+              <option>Electrical improver</option>
+              <option>Electrician</option>
+              <option>QS</option>
+              <option>Manager</option>
+              <option>Director</option>
+            </select>
+          </div>
+        </div>
         <button type="button" class="save-meta-btn" id="addStaffBtn" style="width:100%;background:var(--red);color:#fff;border:none;">Add staff member</button>
       </div>
       <div class="card">
@@ -230,7 +254,7 @@
         <div id="pendingList"><div class="empty-note">Select a site to review.</div></div>
       </div>
       <div class="card">
-        <p class="section-label">Limited / not fully tested</p>
+        <p class="section-label">Limitations / not fully tested</p>
         <p class="hint" style="display:block;margin-bottom:14px;">Items agreed as limited on site — chase access before the next visit.</p>
         <div id="limitedList"><div class="empty-note">Select a site to review.</div></div>
       </div>
@@ -261,7 +285,7 @@
         </div>
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
           <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="scheduleOverdueOnly" style="width:auto;margin:0;">Overdue only</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="scheduleLimitedOnly" style="width:auto;margin:0;">Limited only</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="scheduleLimitedOnly" style="width:auto;margin:0;">Limitation only</label>
         </div>
         <div id="scheduleContent"><div class="empty-note">Select a site.</div></div>
       </div>
@@ -271,21 +295,37 @@
       <div class="card">
         <p class="section-label">Installation details</p>
         <input type="text" id="metaName" style="display:none;">
-        <label>Certificate number <span class="hint">(manually set — increment yourself for a repeat annual test)</span></label>
-        <input type="text" id="metaCertNumber">
-        <label>Address line <span class="hint">(building / street)</span></label>
-        <input type="text" id="metaAddressLine">
-        <label>Postcode</label>
-        <input type="text" id="metaPostcode" style="max-width:160px;text-transform:uppercase;">
-        <p id="postcodeStatus" class="hint" style="margin:-6px 0 12px;"></p>
-        <label>Testing started</label>
-        <input type="date" id="metaStarted">
-        <label>Next retest due <span class="hint">(suggested automatically, editable)</span></label>
-        <input type="text" id="metaDue">
-        <label>Agreed limitations <span class="hint">(review this every year — carried over from site creation, editable here)</span></label>
-        <textarea id="metaLimitations" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;min-height:60px;font-family:'Barlow',sans-serif;"></textarea>
-        <label>Agreed with</label>
-        <input type="text" id="metaAgreedWith">
+        <div class="form-grid">
+          <div>
+            <label>Certificate number <span class="hint">(manually set — increment yourself for a repeat annual test)</span></label>
+            <input type="text" id="metaCertNumber">
+          </div>
+          <div>
+            <label>Address line <span class="hint">(building / street)</span></label>
+            <input type="text" id="metaAddressLine">
+          </div>
+          <div>
+            <label>Postcode</label>
+            <input type="text" id="metaPostcode" style="text-transform:uppercase;">
+            <p id="postcodeStatus" class="hint" style="margin:-6px 0 12px;"></p>
+          </div>
+          <div>
+            <label>Testing started <span class="hint">(suggested automatically from the earliest test on record, editable)</span></label>
+            <input type="date" id="metaStarted">
+          </div>
+          <div>
+            <label>Next retest due <span class="hint">(suggested automatically, editable)</span></label>
+            <input type="text" id="metaDue">
+          </div>
+          <div>
+            <label>Agreed with</label>
+            <input type="text" id="metaAgreedWith">
+          </div>
+          <div class="field-wide">
+            <label>Agreed limitations <span class="hint">(review this every year — carried over from site creation, editable here)</span></label>
+            <textarea id="metaLimitations" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;min-height:60px;font-family:'Barlow',sans-serif;"></textarea>
+          </div>
+        </div>
         <button type="button" class="save-meta-btn" id="saveMetaBtn">Save details</button>
         <div id="satisfactoryBox"></div>
       </div>
@@ -293,20 +333,32 @@
       <div class="card">
         <p class="section-label">Sign-off</p>
         <p class="hint" style="display:block;margin-bottom:14px;">Defaults to whoever tested the most items on this report — override if needed. Signatures are uploaded fresh each time a report is generated, not stored.</p>
-
-        <label>Inspected and tested by</label>
-        <select id="signInspectedName" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;"></select>
-        <label>Position</label>
-        <input type="text" id="signInspectedPosition" placeholder="E.g. Electrician">
-        <label>Signature <span class="hint">(image file)</span></label>
-        <input type="file" accept="image/*" id="signInspectedFile" style="margin-bottom:20px;">
-
-        <label>Report authorised by</label>
-        <input type="text" id="signAuthName" disabled style="background:#f2f2f2;">
-        <label>Position</label>
-        <input type="text" id="signAuthPosition" placeholder="E.g. QS">
-        <label>Signature <span class="hint">(image file)</span></label>
-        <input type="file" accept="image/*" id="signAuthFile">
+        <div class="form-grid">
+          <div>
+            <label>Inspected and tested by</label>
+            <select id="signInspectedName" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:7px;margin-bottom:12px;"></select>
+          </div>
+          <div>
+            <label>Position</label>
+            <input type="text" id="signInspectedPosition" placeholder="E.g. Electrician">
+          </div>
+          <div>
+            <label>Signature <span class="hint">(image file)</span></label>
+            <input type="file" accept="image/*" id="signInspectedFile" style="margin-bottom:20px;">
+          </div>
+          <div>
+            <label>Report authorised by</label>
+            <input type="text" id="signAuthName" disabled style="background:#f2f2f2;">
+          </div>
+          <div>
+            <label>Position</label>
+            <input type="text" id="signAuthPosition" placeholder="E.g. QS">
+          </div>
+          <div>
+            <label>Signature <span class="hint">(image file)</span></label>
+            <input type="file" accept="image/*" id="signAuthFile">
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -565,6 +617,21 @@ function boot() {
   buildCatPills();
   renderSitesList();
   renderStaffList();
+  suggestNextSiteRef();
+}
+
+async function suggestNextSiteRef() {
+  const refInput = document.getElementById('newSiteRef');
+  if (refInput.value.trim()) return;
+  try {
+    const snap = await getDocs(collection(db, 'jobs'));
+    let maxN = 0;
+    snap.forEach(d => {
+      const m = d.id.match(/^SW-ISO-(\d+)$/);
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+    });
+    refInput.value = 'SW-ISO-' + String(maxN + 1).padStart(2, '0');
+  } catch (e) { /* leave blank if this fails, not critical */ }
 }
 
 // ---- Tabs ----
@@ -687,6 +754,7 @@ document.getElementById('addSiteBtn').addEventListener('click', async () => {
     ['newSiteRef','newSiteName','newSiteAddressLine','newSitePostcode','newSiteLimitations','newSiteAgreedWith'].forEach(id => document.getElementById(id).value = '');
     await renderSitesList();
     await loadSites();
+    await suggestNextSiteRef();
     const banner = document.getElementById('banner');
     banner.className = 'banner ok'; banner.textContent = 'Site added: ' + ref; banner.style.display = 'block';
   } catch (e) {
@@ -856,7 +924,7 @@ function renderStatsBar() {
   const passed = total - failed;
   const qsed = groups.filter(g => g.latest && g.latest.qsed).length;
   const stat = (label, val, color) => `<div><div style="font-size:22px;font-weight:700;${color ? 'color:' + color + ';' : ''}">${val}</div><div style="font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.03em;font-weight:600;">${label}</div></div>`;
-  bar.innerHTML = stat('Total', total) + stat('Passed', passed, 'var(--pass)') + stat('Failed', failed, 'var(--fail)') + stat('Limited', limited, '#8a6d1a') + stat('QSed', qsed + ' / ' + total);
+  bar.innerHTML = stat('Total', total) + stat('Passed', passed, 'var(--pass)') + stat('Failed', failed, 'var(--fail)') + stat('Limitations', limited, '#8a6d1a') + stat('QSed', qsed + ' / ' + total);
 }
 
 document.getElementById('selectAllBox').addEventListener('change', (e) => {
@@ -1127,7 +1195,7 @@ function renderSchedule() {
         const cellText = v === 'Pass' ? '✓' : v === 'Fail' ? '✕' : v === 'N/A' ? 'N/A' : '—';
         html += `<td class="${cellClass}">${cellText}</td>`;
       });
-      const statusLabel = isLimitedRecord(latest) ? '<span class="chip" style="background:#fff3cd;color:#8a6d1a;">Limited</span>' : '<span class="chip chip-pass">Full</span>';
+      const statusLabel = isLimitedRecord(latest) ? '<span class="chip" style="background:#fff3cd;color:#8a6d1a;">Limitation</span>' : '<span class="chip chip-pass">Full</span>';
       html += `<td style="white-space:nowrap;">${latest.model || '—'}</td><td>${statusLabel}</td><td style="max-width:220px;">${latest.observations || '-'}</td></tr>`;
     });
     html += `</tbody></table></div>`;
@@ -1144,6 +1212,12 @@ function suggestedRetestDue() {
   const d = new Date(earliest);
   d.setFullYear(d.getFullYear() + 1);
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+function suggestedTestingStarted() {
+  const groups = getReportGroups().filter(g => g.latest && g.latest.date);
+  if (groups.length === 0) return '';
+  return groups.reduce((min, g) => g.latest.date < min ? g.latest.date : min, groups[0].latest.date);
 }
 
 let postcodeArea = '';
@@ -1198,7 +1272,7 @@ function renderFront() {
   document.getElementById('metaAddressLine').value = siteMeta.addressLine || '';
   document.getElementById('metaPostcode').value = siteMeta.postcode || '';
   document.getElementById('postcodeStatus').textContent = '';
-  document.getElementById('metaStarted').value = siteMeta.testingStarted || '';
+  document.getElementById('metaStarted').value = siteMeta.testingStarted || suggestedTestingStarted();
   document.getElementById('metaDue').value = siteMeta.nextRetestDue || suggestedRetestDue();
   document.getElementById('metaLimitations').value = siteMeta.agreedLimitations || '';
   document.getElementById('metaAgreedWith').value = siteMeta.agreedWith || '';
@@ -1436,20 +1510,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   ];
   companyRows.forEach((r, i) => { ensureRoom(22); y = labelValueRow(y, contentW, r[0], r[1], i % 2 === 1); });
 
-  // Short declaration, sitting with the sign-off rather than the full
-  // Final Declaration page at the very end of the document.
   y += 26;
-  ensureRoom(20 + 50);
-  y = sectionBar(y, 'Declaration', contentW);
-  y += 10;
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
-  const shortDeclText = "I/We, being the person(s) responsible for the inspection and functional testing of the machinery safety and isolation devices identified in this report, as indicated by my/our signatures below, having exercised reasonable skill and care when carrying out the inspection and testing, hereby declare that the information contained in this report, including the recorded results, observations and attached schedules, provides an accurate assessment of the functional condition of the devices tested at the time of the inspection, taking into account the stated scope, operating conditions, extent and limitations of the work.";
-  const shortDeclLines = pdf.splitTextToSize(shortDeclText, contentW);
-  ensureRoom(shortDeclLines.length * 11 + 10);
-  pdf.text(shortDeclLines, marginX, y);
-  y += shortDeclLines.length * 11 + 10;
-
-  y += 16;
   ensureRoom(20 + 74);
   const anyFail = groups.some(g => g.latest && !overallPassOf(g.latest));
   y = sectionBar(y, 'Overall Assessment', contentW);
@@ -1474,11 +1535,19 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
   const pageRefX = marginX + 12, pageRefY = y + 62;
   y += boxH + 10;
 
-  // ---- Sign-off ----
+  // Short declaration, with the sign-off flowing directly beneath it under
+  // the same heading - this is distinct from the full Final Declaration
+  // page at the very end of the document.
   y += 16;
-  ensureRoom(20 + 90);
-  y = sectionBar(y, 'Declaration Sign-off', contentW);
-  y += 12;
+  ensureRoom(20 + 50);
+  y = sectionBar(y, 'Declaration & Sign-off', contentW);
+  y += 10;
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 60, 60);
+  const shortDeclText = "I/We, being the person(s) responsible for the inspection and functional testing of the machinery safety and isolation devices identified in this report, as indicated by my/our signatures below, having exercised reasonable skill and care when carrying out the inspection and testing, hereby declare that the information contained in this report, including the recorded results, observations and attached schedules, provides an accurate assessment of the functional condition of the devices tested at the time of the inspection, taking into account the stated scope, operating conditions, extent and limitations of the work.";
+  const shortDeclLines = pdf.splitTextToSize(shortDeclText, contentW);
+  ensureRoom(shortDeclLines.length * 11 + 10);
+  pdf.text(shortDeclLines, marginX, y);
+  y += shortDeclLines.length * 11 + 16;
 
   function signOffBlock(label, name, position, sig, dateStr) {
     ensureRoom(90);

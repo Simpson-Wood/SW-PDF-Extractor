@@ -140,7 +140,7 @@
       <img src="sw-logo.png" alt="Simpson & Wood">
       <div class="title-block">
         <h1>Isolator / Interlock Test</h1>
-        <p id="versionLabel">v12.0</p>
+        <p id="versionLabel">v13.0</p>
       </div>
     </div>
     <div class="who">
@@ -160,7 +160,7 @@
       <button type="button" id="readyForQsBtn" style="display:none;width:100%;margin-top:10px;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;">Mark ready for QS</button>
       <button type="button" id="toggleAddSiteBtn" style="width:100%;margin-top:10px;padding:9px;background:#fff;border:1.5px dashed var(--line);color:var(--grey);border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;">+ Add a new site</button>
       <div id="addSiteForm" style="display:none;margin-top:12px;">
-        <label>Site reference <span class="hint">(short code, e.g. JUB-01 — can't be changed later)</span></label>
+        <label>Site reference <span class="hint">(suggested automatically — edit if you need something different, can't be changed later)</span></label>
         <input type="text" id="newSiteRef">
         <label>Customer / site name</label>
         <input type="text" id="newSiteName">
@@ -223,7 +223,7 @@
         </div>
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
           <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="regOverdueOnly" style="width:auto;margin:0;">Overdue only</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="regLimitedOnly" style="width:auto;margin:0;">Limited/agreed limitation only</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;margin:0;"><input type="checkbox" id="regLimitedOnly" style="width:auto;margin:0;">Limitation only</label>
         </div>
         <div id="regList"><div class="loading-note">Select a site to view its register.</div></div>
       </div>
@@ -252,7 +252,7 @@ import {
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const VERSION = "v12.0";
+const VERSION = "v13.0";
 document.getElementById('versionLabel').textContent = VERSION + ' · Log one or more tests for this visit';
 console.log('Isolator/Interlock tool', VERSION);
 
@@ -576,9 +576,28 @@ document.getElementById('readyForQsBtn').addEventListener('click', async () => {
   }
 });
 
-document.getElementById('toggleAddSiteBtn').addEventListener('click', () => {
+async function suggestNextSiteRef() {
+  try {
+    const snap = await getDocs(collection(db, 'jobs'));
+    let maxN = 0;
+    snap.forEach(d => {
+      const m = d.id.match(/^SW-ISO-(\d+)$/);
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+    });
+    return 'SW-ISO-' + String(maxN + 1).padStart(2, '0');
+  } catch (e) {
+    return '';
+  }
+}
+
+document.getElementById('toggleAddSiteBtn').addEventListener('click', async () => {
   const form = document.getElementById('addSiteForm');
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  const opening = form.style.display === 'none';
+  form.style.display = opening ? 'block' : 'none';
+  if (opening) {
+    const refInput = document.getElementById('newSiteRef');
+    if (!refInput.value.trim()) refInput.value = await suggestNextSiteRef();
+  }
 });
 document.getElementById('addSiteBtn').addEventListener('click', async () => {
   const ref = document.getElementById('newSiteRef').value.trim();
@@ -1041,10 +1060,10 @@ function addEntry(prefill) {
       <div class="id-preview pending" data-role="idPreview">Select a category and fill in the fields above</div>
       <p class="id-note" data-role="idNote"></p>
 
-      <label>Item has testing limitations <span class="req">*</span><span class="hint">Could everything be fully accessed and tested, or was something in the way?</span></label>
+      <label>Was the item fully accessible and tested? <span class="req">*</span><span class="hint">Select "Limitation" where any part of the inspection or test could not be completed due to an agreed limitation.</span></label>
       <div class="radio-row" data-testing-status style="margin-bottom:14px;">
-        <div class="radio-opt" data-value="Full">No — fully tested</div>
-        <div class="radio-opt" data-value="Limited">Yes — limited</div>
+        <div class="radio-opt" data-value="Full">Yes — fully tested</div>
+        <div class="radio-opt" data-value="Limited">No — limitation</div>
       </div>
       <div class="error-msg" data-error-for="testingStatus">Required</div>
 
